@@ -135,7 +135,15 @@ STRICT REQUIREMENTS:
         'Gemini image generation returned no inline image data:',
         JSON.stringify(response, null, 2)
       );
-      throw new Error('No image generated in Gemini response.');
+
+      // Return a specific error indicating no image was generated
+      return {
+        success: false,
+        error: 'NO_IMAGE_GENERATED',
+        message:
+          'The AI was unable to generate an image. Please try again with different images.',
+        timestamp: new Date().toISOString(),
+      };
     } catch (error) {
       console.error('Error generating clothing transfer with Gemini:', error);
       throw new Error(`Failed to generate clothing transfer: ${error.message}`);
@@ -452,7 +460,9 @@ STRICT REQUIREMENTS:
   }
 
   isInitialized() {
-    return !!this.genAI && !!this.model && !!this.visionModel && !!this.imageModel;
+    return (
+      !!this.genAI && !!this.model && !!this.visionModel && !!this.imageModel
+    );
   }
 }
 

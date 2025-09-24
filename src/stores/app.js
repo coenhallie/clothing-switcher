@@ -60,8 +60,12 @@ export const useAppStore = defineStore('app', () => {
 
   const loadApiKey = () => {
     const stored = localStorage.getItem('ai_api_key');
+    const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+
     if (stored) {
       apiKey.value = stored;
+    } else if (envKey && envKey !== 'your-openrouter-api-key') {
+      apiKey.value = envKey;
     }
   };
 

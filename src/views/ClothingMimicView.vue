@@ -154,9 +154,16 @@
         </div>
       </div>
 
+      <!-- Credit Balance (for authenticated users) -->
+      <div v-if="isAuthenticated" class="mb-6">
+        <CreditBalance @buy-credits="openPurchaseCredits" />
+      </div>
+
       <!-- Generate Button -->
       <div class="text-center mb-8">
+        <!-- Authenticated User Button -->
         <button
+          v-if="isAuthenticated"
           @click="generateClothingMimic"
           :disabled="!canGenerate || isGenerating"
           class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
@@ -184,8 +191,22 @@
             </svg>
             Generating...
           </span>
-          <span v-else>Generate Try-On</span>
+          <span v-else-if="!hasCredits">No Credits - Buy Credits</span>
+          <span v-else>Generate Try-On (1 Credit)</span>
         </button>
+
+        <!-- Guest User Button -->
+        <div v-else class="space-y-4">
+          <button
+            @click="openAuthModal"
+            class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+          >
+            Sign Up to Generate (1 Free Credit!)
+          </button>
+          <p class="text-sm text-gray-600">
+            Create an account to get 1 free credit and start generating images
+          </p>
+        </div>
       </div>
 
       <!-- Result Section -->
@@ -244,11 +265,21 @@
 import { ref, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useAppStore } from '../stores/app';
+import { useAuthStore } from '../stores/authStore';
+import { useCreditStore } from '../stores/creditStore';
 import openRouterService from '../services/openRouterService';
 import geminiService from '../services/geminiService';
+import CreditBalance from '../components/credits/CreditBalance.vue';
 
+// Stores
 const appStore = useAppStore();
+const authStore = useAuthStore();
+const creditStore = useCreditStore();
+
+// Store refs
 const { apiKey, provider } = storeToRefs(appStore);
+const { isAuthenticated } = storeToRefs(authStore);
+const { credits, canGenerate: hasCredits } = storeToRefs(creditStore);
 
 // Reactive state
 const sourceImage = ref(null);
@@ -261,7 +292,13 @@ const errorMessage = ref('');
 
 // Computed properties
 const canGenerate = computed(() => {
-  return sourceFile.value && targetFile.value && !isGenerating.value;
+  if (!isAuthenticated.value) return false;
+  return (
+    sourceFile.value &&
+    targetFile.value &&
+    !isGenerating.value &&
+    hasCredits.value
+  );
 });
 
 // Methods
@@ -306,40 +343,101 @@ const removeTargetImage = () => {
 const generateClothingMimic = async () => {
   if (!canGenerate.value) return;
 
+  // Check authentication
+  if (!isAuthenticated.value) {
+    appStore.addToast({
+      type: 'error',
+      title: 'Authentication Required',
+      message: 'Please sign in to generate images',
+    });
+    return;
+  }
+
+  // Check credits
+  if (!hasCredits.value) {
+    appStore.addToast({
+      type: 'error',
+      title: 'No Credits',
+      message: 'You need credits to generate images. Please purchase credits.',
+    });
+    return;
+  }
+
   isGenerating.value = true;
   errorMessage.value = '';
   resultImage.value = null;
 
   try {
+    // For now, we'll still use the API key from settings
+    // In production, this should be moved to server-side
     if (!apiKey.value) {
       throw new Error('Please configure your API key in Settings first');
     }
 
-    let result;
+    // Use credit first
+    const creditResult = await creditStore.useCredit(1, 'Image generation');
 
-    if (provider.value === 'gemini') {
-      geminiService.initialize(apiKey.value);
-      result = await geminiService.generateClothingTransfer(
-        sourceFile.value,
-        targetFile.value
-      );
-    } else {
-      openRouterService.initialize(apiKey.value);
-      result = await openRouterService.generateClothingTransfer(
-        sourceFile.value,
-        targetFile.value
-      );
+    if (!creditResult.success) {
+      throw new Error(creditResult.error);
     }
 
-    if (result.success && result.imageUrl) {
-      resultImage.value = result.imageUrl;
-      appStore.addToast({
-        type: 'success',
-        title: 'Success!',
-        message: 'Clothing mimic generated successfully',
-      });
-    } else {
-      throw new Error('Failed to generate clothing mimic');
+    let result;
+    let creditUsed = true;
+
+    try {
+      if (provider.value === 'gemini') {
+        geminiService.initialize(apiKey.value);
+        result = await geminiService.generateClothingTransfer(
+          sourceFile.value,
+          targetFile.value
+        );
+      } else {
+        openRouterService.initialize(apiKey.value);
+        result = await openRouterService.generateClothingTransfer(
+          sourceFile.value,
+          targetFile.value
+        );
+      }
+
+      if (result.success && result.imageUrl) {
+        resultImage.value = result.imageUrl;
+        appStore.addToast({
+          type: 'success',
+          title: 'Success!',
+          message: `Clothing mimic generated successfully! ${creditResult.newBalance} credits remaining.`,
+        });
+        creditUsed = true; // Keep the credit since generation was successful
+      } else {
+        // Refund the credit since no image was generated
+        await creditStore.addCredits(
+          1,
+          'refunded',
+          'Refund for failed generation - no image generated'
+        );
+        creditUsed = false;
+
+        // Handle specific case where no image was generated
+        if (result.error === 'NO_IMAGE_GENERATED') {
+          throw new Error(
+            result.message ||
+              'The AI was unable to generate an image. Please try again with different images.'
+          );
+        } else {
+          throw new Error(
+            result.message || 'Failed to generate clothing mimic'
+          );
+        }
+      }
+    } catch (apiError) {
+      // If the API call failed and we used a credit, refund it
+      if (creditUsed) {
+        await creditStore.addCredits(
+          1,
+          'refunded',
+          'Refund for failed API call'
+        );
+      }
+      throw apiError;
     }
   } catch (error) {
     console.error('Error generating clothing mimic:', error);
@@ -352,6 +450,20 @@ const generateClothingMimic = async () => {
   } finally {
     isGenerating.value = false;
   }
+};
+
+// New methods for auth and purchase modals
+const openAuthModal = () => {
+  // This will be handled by the parent App component
+  // We can emit an event or use a global event bus
+  window.dispatchEvent(
+    new CustomEvent('open-auth-modal', { detail: 'signup' })
+  );
+};
+
+const openPurchaseCredits = () => {
+  // This will be handled by the parent App component
+  window.dispatchEvent(new CustomEvent('open-purchase-modal'));
 };
 
 const downloadResult = () => {

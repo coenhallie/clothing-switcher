@@ -4,11 +4,23 @@
 
 class OpenRouterService {
   constructor() {
-    this.apiKey = null;
+    this.apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
     this.baseURL = 'https://openrouter.ai/api/v1';
+
+    if (!this.apiKey) {
+      console.error('OpenRouter API key not found in environment variables');
+    }
   }
 
   initialize(apiKey) {
+    // This method is kept for backward compatibility but now uses env variable
+    if (this.apiKey) {
+      console.warn(
+        'OpenRouter API key is configured via environment variables. User-provided key ignored.'
+      );
+      return;
+    }
+
     if (!apiKey || !apiKey.trim()) {
       throw new Error('API key is required');
     }
@@ -233,9 +245,15 @@ ${compatibilityInfo}`;
         'Unexpected response structure:',
         JSON.stringify(result, null, 2)
       );
-      throw new Error(
-        'No image generated in response. Check console for response structure.'
-      );
+
+      // Return a specific error indicating no image was generated
+      return {
+        success: false,
+        error: 'NO_IMAGE_GENERATED',
+        message:
+          'The AI was unable to generate an image. Please try again with different images.',
+        timestamp: new Date().toISOString(),
+      };
     } catch (error) {
       console.error('Error generating clothing transfer:', error);
       throw new Error(`Failed to generate clothing transfer: ${error.message}`);
