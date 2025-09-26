@@ -3,6 +3,17 @@
     <section
       class="relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_85%,transparent)] px-8 py-10 shadow-soft"
     >
+      <div class="pointer-events-none absolute inset-0 z-0">
+        <img
+          :src="heroFashionBg"
+          alt=""
+          class="h-full w-full object-cover opacity-60"
+          aria-hidden="true"
+        />
+        <div
+          class="absolute inset-0 bg-gradient-to-br from-[rgba(16,20,38,0.85)] via-[rgba(32,21,58,0.78)] to-[rgba(18,30,52,0.7)] backdrop-blur-[2px]"
+        ></div>
+      </div>
       <div
         class="pointer-events-none absolute -right-10 -top-24 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/30 via-purple-400/25 to-sky-300/20 blur-3xl"
       ></div>
@@ -11,7 +22,7 @@
       ></div>
 
       <div
-        class="flex flex-col gap-8 md:flex-row md:items-start md:justify-between"
+        class="relative z-10 flex flex-col gap-8 md:flex-row md:items-start md:justify-between"
       >
         <div class="max-w-2xl space-y-5">
           <div
@@ -443,6 +454,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
+import heroFashionBg from '../assets/images/hero-fashion-bg.png';
 import { useAppStore } from '../stores/app';
 import { useAuthStore } from '../stores/authStore';
 import { useCreditStore } from '../stores/creditStore';
