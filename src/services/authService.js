@@ -7,11 +7,10 @@ class AuthService {
   }
 
   /**
-   * Sign up a new user
+   * Sign up a new user using Supabase Auth
    */
   async signUp(email, password, username = '', fullName = '') {
     try {
-      // First create the auth user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -24,11 +23,6 @@ class AuthService {
       });
 
       if (error) throw error;
-
-      // If user is created and confirmed, create user record
-      if (data.user && data.user.email_confirmed_at) {
-        await this.createUserRecord(data.user, username);
-      }
 
       return {
         success: true,
@@ -45,7 +39,7 @@ class AuthService {
   }
 
   /**
-   * Sign in an existing user
+   * Sign in using Supabase Auth
    */
   async signIn(email, password) {
     try {
@@ -57,12 +51,13 @@ class AuthService {
       if (error) throw error;
 
       this.currentUser = data.user;
-      await this.loadProfile();
+
+      // Initialize user credits if they don't exist
+      await this.initializeUserCredits();
 
       return {
         success: true,
         user: data.user,
-        profile: this.currentProfile,
       };
     } catch (error) {
       console.error('Sign in error:', error);
@@ -104,26 +99,39 @@ class AuthService {
         error,
       } = await supabase.auth.getUser();
 
-      // If there's an error but it's just "no session", that's normal
-      if (error && error.message !== 'Auth session missing!') {
-        throw error;
+      if (error) {
+        console.warn('Get user error:', error);
+        this.currentUser = null;
+        this.currentProfile = null;
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
+      if (!user) {
+        this.currentUser = null;
+        this.currentProfile = null;
+        return {
+          success: false,
+          error: 'No authenticated user',
+        };
       }
 
       this.currentUser = user;
-      if (user) {
-        await this.loadProfile();
-      }
+
+      // Initialize user credits if they don't exist
+      await this.initializeUserCredits();
 
       return {
         success: true,
         user,
-        profile: this.currentProfile,
+        profile: user, // Use user data as profile for consistency
       };
     } catch (error) {
-      // Only log actual errors, not missing sessions
-      if (error.message !== 'Auth session missing!') {
-        console.error('Get current user error:', error);
-      }
+      console.error('Get current user error:', error);
+      this.currentUser = null;
+      this.currentProfile = null;
       return {
         success: false,
         error: error.message,
@@ -132,124 +140,39 @@ class AuthService {
   }
 
   /**
-   * Load user profile from database
+   * Initialize user credits record if it doesn't exist
    */
-  async loadProfile() {
-    if (!this.currentUser) return null;
+  async initializeUserCredits(user = null) {
+    const targetUser = user || this.currentUser;
+    if (!targetUser) return;
 
     try {
-      // Get user record from users table
-      const { data: userData, error: userError } = await supabase
-        .from(TABLES.USERS)
-        .select('*')
-        .eq('id', this.currentUser.id)
-        .single();
-
-      if (userError) {
-        // If user doesn't exist in our users table, create it
-        if (userError.code === 'PGRST116') {
-          return await this.createUserRecord(this.currentUser);
-        }
-        throw userError;
-      }
-
-      // Get credit information
-      const { data: creditData, error: creditError } = await supabase
+      // Check if credits record exists
+      const { data: existingCredits, error: checkError } = await supabase
         .from(TABLES.CREDITS)
-        .select('*')
-        .eq('user_id', this.currentUser.id)
+        .select('id')
+        .eq('user_id', targetUser.id)
         .single();
 
-      // Combine user and credit data
-      this.currentProfile = {
-        ...userData,
-        credits: creditData?.current_balance || 0,
-        total_purchased: creditData?.total_purchased || 0,
-        total_consumed: creditData?.total_consumed || 0,
-      };
+      // If no credits record exists, create one
+      if (checkError && checkError.code === 'PGRST116') {
+        const { error: insertError } = await supabase
+          .from(TABLES.CREDITS)
+          .insert({
+            user_id: targetUser.id,
+            current_balance: 2, // Give new users 2 free credits
+            total_purchased: 0,
+            total_consumed: 0,
+          });
 
-      return this.currentProfile;
-    } catch (error) {
-      console.error('Load profile error:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Create a new user record in our users table
-   */
-  async createUserRecord(authUser, username = '') {
-    if (!authUser) return null;
-
-    try {
-      const userData = {
-        id: authUser.id,
-        email: authUser.email,
-        username:
-          username ||
-          authUser.user_metadata?.username ||
-          authUser.email.split('@')[0],
-        password_hash: 'managed_by_supabase_auth', // We don't store the actual hash
-        email_verified: !!authUser.email_confirmed_at,
-      };
-
-      const { data, error } = await supabase
-        .from(TABLES.USERS)
-        .insert(userData)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // The trigger should automatically create the credit record
-      // Let's wait a moment and then load the profile
-      setTimeout(() => this.loadProfile(), 1000);
-
-      return data;
-    } catch (error) {
-      console.error('Create user record error:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Update user profile
-   */
-  async updateProfile(updates) {
-    if (!this.currentUser) {
-      return { success: false, error: 'No user logged in' };
-    }
-
-    try {
-      // Only update fields that exist in the users table
-      const userUpdates = {};
-      if (updates.username) userUpdates.username = updates.username;
-      if (updates.email) userUpdates.email = updates.email;
-
-      if (Object.keys(userUpdates).length > 0) {
-        const { data, error } = await supabase
-          .from(TABLES.USERS)
-          .update(userUpdates)
-          .eq('id', this.currentUser.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        // Reload profile to get updated data
-        await this.loadProfile();
+        if (insertError) {
+          console.error('Error creating credits record:', insertError);
+        } else {
+          console.log('Created credits record for new user');
+        }
       }
-
-      return {
-        success: true,
-        profile: this.currentProfile,
-      };
     } catch (error) {
-      console.error('Update profile error:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
+      console.error('Error initializing user credits:', error);
     }
   }
 
@@ -258,10 +181,7 @@ class AuthService {
    */
   async resetPassword(email) {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) throw error;
 
       return {
@@ -285,7 +205,6 @@ class AuthService {
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
-
       if (error) throw error;
 
       return {
@@ -302,22 +221,36 @@ class AuthService {
   }
 
   /**
-   * Listen to auth state changes
+   * Listen for auth state changes
    */
   onAuthStateChange(callback) {
     return supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN') {
-        this.currentUser = session?.user || null;
-        if (this.currentUser) {
-          await this.loadProfile();
-        }
-      } else if (event === 'SIGNED_OUT') {
+      console.log('Auth state changed:', event, session?.user?.email);
+
+      if (session?.user) {
+        this.currentUser = session.user;
+        await this.initializeUserCredits();
+      } else {
         this.currentUser = null;
         this.currentProfile = null;
       }
 
-      callback(event, session, this.currentProfile);
+      callback(event, session);
     });
+  }
+
+  /**
+   * Get current user (synchronous)
+   */
+  getUser() {
+    return this.currentUser;
+  }
+
+  /**
+   * Get current profile (synchronous)
+   */
+  getProfile() {
+    return this.currentProfile;
   }
 
   /**
@@ -325,20 +258,6 @@ class AuthService {
    */
   isAuthenticated() {
     return !!this.currentUser;
-  }
-
-  /**
-   * Get current user profile
-   */
-  getProfile() {
-    return this.currentProfile;
-  }
-
-  /**
-   * Get current user
-   */
-  getUser() {
-    return this.currentUser;
   }
 }
 

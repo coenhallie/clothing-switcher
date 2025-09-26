@@ -1,72 +1,90 @@
 <template>
-  <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">
-      Create Account
-    </h2>
+  <div class="auth-panel">
+    <header class="auth-panel__header">
+      <h2 class="auth-panel__title">Create Account</h2>
+      <p class="auth-panel__subtitle">
+        Join the community and start remixing outfits with AI-enhanced styling.
+      </p>
+    </header>
 
-    <form @submit.prevent="handleSubmit" class="space-y-4">
-      <!-- Full Name Field -->
-      <div>
-        <label
-          for="fullName"
-          class="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Full Name (Optional)
+    <div class="auth-panel__highlight">
+      <svg fill="currentColor" viewBox="0 0 20 20">
+        <path
+          fill-rule="evenodd"
+          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+          clip-rule="evenodd"
+        />
+      </svg>
+      <span
+        ><strong>Bonus:</strong> Unlock 2 free credit the moment you sign
+        up.</span
+      >
+    </div>
+
+    <form @submit.prevent="handleSubmit" class="auth-panel__form">
+      <div class="auth-panel__field">
+        <label for="fullName" class="auth-panel__label">
+          Full Name
+          <span>Optional</span>
         </label>
         <input
           id="fullName"
           v-model="form.fullName"
           type="text"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="Enter your full name"
+          autocomplete="name"
+          placeholder=""
+          class="auth-panel__input"
         />
       </div>
 
-      <!-- Email Field -->
-      <div>
-        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-          Email *
+      <div class="auth-panel__field">
+        <label for="email" class="auth-panel__label">
+          Email
+          <span>Required</span>
         </label>
         <input
           id="email"
           v-model="form.email"
           type="email"
           required
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          :class="{ 'border-red-500': errors.email }"
-          placeholder="Enter your email"
+          autocomplete="email"
+          placeholder=""
+          :class="[
+            'auth-panel__input',
+            { 'auth-panel__input--error': errors.email },
+          ]"
         />
-        <p v-if="errors.email" class="mt-1 text-sm text-red-600">
+        <p v-if="errors.email" class="auth-panel__feedback">
           {{ errors.email }}
         </p>
       </div>
 
-      <!-- Password Field -->
-      <div>
-        <label
-          for="password"
-          class="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Password *
+      <div class="auth-panel__field">
+        <label for="password" class="auth-panel__label">
+          Password
+          <span>Minimum 6 characters</span>
         </label>
-        <div class="relative">
+        <div class="auth-panel__input-wrapper">
           <input
             id="password"
             v-model="form.password"
             :type="showPassword ? 'text' : 'password'"
             required
-            class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            :class="{ 'border-red-500': errors.password }"
-            placeholder="Enter your password"
+            autocomplete="new-password"
+            placeholder="Create a secure password"
+            :class="[
+              'auth-panel__input',
+              { 'auth-panel__input--error': errors.password },
+            ]"
           />
           <button
             type="button"
+            class="auth-panel__password-toggle"
             @click="showPassword = !showPassword"
-            class="absolute inset-y-0 right-0 pr-3 flex items-center"
+            :aria-label="showPassword ? 'Hide password' : 'Show password'"
           >
             <svg
               v-if="showPassword"
-              class="h-5 w-5 text-gray-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -78,13 +96,7 @@
                 d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
               />
             </svg>
-            <svg
-              v-else
-              class="h-5 w-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg v-else fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -100,40 +112,42 @@
             </svg>
           </button>
         </div>
-        <p v-if="errors.password" class="mt-1 text-sm text-red-600">
+        <p v-if="errors.password" class="auth-panel__feedback">
           {{ errors.password }}
         </p>
-        <p class="mt-1 text-xs text-gray-500">
-          Password must be at least 6 characters long
+        <p class="auth-panel__helper">
+          Password must be at least 6 characters long.
         </p>
       </div>
 
-      <!-- Confirm Password Field -->
-      <div>
-        <label
-          for="confirmPassword"
-          class="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Confirm Password *
+      <div class="auth-panel__field">
+        <label for="confirmPassword" class="auth-panel__label">
+          Confirm Password
+          <span>Required</span>
         </label>
-        <div class="relative">
+        <div class="auth-panel__input-wrapper">
           <input
             id="confirmPassword"
             v-model="form.confirmPassword"
             :type="showConfirmPassword ? 'text' : 'password'"
             required
-            class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            :class="{ 'border-red-500': errors.confirmPassword }"
-            placeholder="Confirm your password"
+            autocomplete="new-password"
+            placeholder="Repeat your password"
+            :class="[
+              'auth-panel__input',
+              { 'auth-panel__input--error': errors.confirmPassword },
+            ]"
           />
           <button
             type="button"
+            class="auth-panel__password-toggle"
             @click="showConfirmPassword = !showConfirmPassword"
-            class="absolute inset-y-0 right-0 pr-3 flex items-center"
+            :aria-label="
+              showConfirmPassword ? 'Hide password' : 'Show password'
+            "
           >
             <svg
               v-if="showConfirmPassword"
-              class="h-5 w-5 text-gray-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -145,13 +159,7 @@
                 d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
               />
             </svg>
-            <svg
-              v-else
-              class="h-5 w-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg v-else fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -167,53 +175,51 @@
             </svg>
           </button>
         </div>
-        <p v-if="errors.confirmPassword" class="mt-1 text-sm text-red-600">
+        <p v-if="errors.confirmPassword" class="auth-panel__feedback">
           {{ errors.confirmPassword }}
         </p>
       </div>
 
-      <!-- Free Credit Info -->
-      <div class="bg-green-50 border border-green-200 rounded-md p-3">
-        <div class="flex items-center">
-          <svg
-            class="h-5 w-5 text-green-400 mr-2"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <p class="text-sm text-green-700">
-            <strong>Get 1 free credit</strong> when you create your account!
-          </p>
-        </div>
+      <div
+        v-if="error"
+        class="auth-panel__message auth-panel__message--error"
+        role="alert"
+      >
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <span>{{ error }}</span>
       </div>
 
-      <!-- Error Message -->
-      <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-3">
-        <p class="text-sm text-red-600">{{ error }}</p>
-      </div>
-
-      <!-- Success Message -->
       <div
         v-if="successMessage"
-        class="bg-green-50 border border-green-200 rounded-md p-3"
+        class="auth-panel__message auth-panel__message--success"
+        role="status"
       >
-        <p class="text-sm text-green-600">{{ successMessage }}</p>
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <span>{{ successMessage }}</span>
       </div>
 
-      <!-- Submit Button -->
       <button
         type="submit"
         :disabled="isLoading"
-        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        class="auth-panel__primary-btn"
       >
-        <span v-if="isLoading" class="flex items-center justify-center">
+        <span v-if="isLoading" class="flex items-center gap-2">
           <svg
-            class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+            class="auth-panel__spinner animate-spin"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -237,18 +243,17 @@
         <span v-else>Create Account</span>
       </button>
 
-      <!-- Sign In Link -->
-      <div class="text-center">
-        <p class="text-sm text-gray-600">
-          Already have an account?
+      <div class="auth-panel__footer">
+        <div>
+          <span>Already have an account?</span>
           <button
             type="button"
+            class="auth-panel__toggle"
             @click="$emit('switch-to-login')"
-            class="text-blue-600 hover:text-blue-500 font-medium"
           >
             Sign in
           </button>
-        </p>
+        </div>
       </div>
     </form>
   </div>
@@ -258,13 +263,10 @@
 import { ref, reactive } from 'vue';
 import { useAuthStore } from '../../stores/authStore.js';
 
-// Emits
 const emit = defineEmits(['success', 'switch-to-login']);
 
-// Store
 const authStore = useAuthStore();
 
-// Reactive state
 const form = reactive({
   fullName: '',
   email: '',
@@ -284,7 +286,6 @@ const isLoading = ref(false);
 const error = ref('');
 const successMessage = ref('');
 
-// Methods
 const validateForm = () => {
   errors.email = '';
   errors.password = '';
@@ -339,7 +340,6 @@ const handleSubmit = async () => {
 
     if (result.success) {
       successMessage.value = result.message;
-      // Reset form after successful signup
       setTimeout(() => {
         resetForm();
         emit('success', result);
@@ -354,7 +354,6 @@ const handleSubmit = async () => {
   }
 };
 
-// Reset form when component is mounted
 const resetForm = () => {
   form.fullName = '';
   form.email = '';
@@ -369,7 +368,6 @@ const resetForm = () => {
   showConfirmPassword.value = false;
 };
 
-// Expose reset method
 defineExpose({
   resetForm,
 });

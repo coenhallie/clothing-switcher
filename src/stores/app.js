@@ -7,8 +7,8 @@ export const useAppStore = defineStore('app', () => {
   const loadingMessage = ref('');
   const toasts = ref([]);
   const user = ref(null);
-  const apiKey = ref('');
-  const provider = ref('openrouter'); // Default to OpenRouter
+  const theme = ref('system');
+  const resolvedTheme = ref('light');
 
   // Toast management
   let toastId = 0;
@@ -52,33 +52,56 @@ export const useAppStore = defineStore('app', () => {
     loadingMessage.value = message;
   };
 
-  // API Key management
-  const setApiKey = (key) => {
-    apiKey.value = key;
-    localStorage.setItem('ai_api_key', key);
+  // Theme management
+  let themeMediaQuery = null;
+
+  const evaluateTheme = (targetTheme = theme.value) => {
+    if (typeof window === 'undefined') return targetTheme;
+    if (targetTheme === 'system') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
+    }
+    return targetTheme;
   };
 
-  const loadApiKey = () => {
-    const stored = localStorage.getItem('ai_api_key');
-    const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+  const applyTheme = (targetTheme = theme.value) => {
+    if (typeof document === 'undefined') return;
+    const resolved = evaluateTheme(targetTheme);
+    resolvedTheme.value = resolved;
+    document.documentElement.classList.toggle('dark', resolved === 'dark');
+  };
 
+  const setTheme = (value) => {
+    theme.value = value;
+    localStorage.setItem('app_theme', value);
+    applyTheme(value);
+  };
+
+  const loadTheme = () => {
+    if (typeof window === 'undefined') return;
+    const stored = localStorage.getItem('app_theme');
     if (stored) {
-      apiKey.value = stored;
-    } else if (envKey && envKey !== 'your-openrouter-api-key') {
-      apiKey.value = envKey;
+      theme.value = stored;
+    }
+    applyTheme(theme.value);
+
+    if (!themeMediaQuery) {
+      themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      themeMediaQuery.addEventListener('change', handleSystemThemeChange);
     }
   };
 
-  // Provider management
-  const setProvider = (providerName) => {
-    provider.value = providerName;
-    localStorage.setItem('ai_provider', providerName);
+  const handleSystemThemeChange = () => {
+    if (theme.value === 'system') {
+      applyTheme('system');
+    }
   };
 
-  const loadProvider = () => {
-    const stored = localStorage.getItem('ai_provider');
-    if (stored) {
-      provider.value = stored;
+  const teardownThemeWatcher = () => {
+    if (themeMediaQuery) {
+      themeMediaQuery.removeEventListener('change', handleSystemThemeChange);
+      themeMediaQuery = null;
     }
   };
 
@@ -89,12 +112,10 @@ export const useAppStore = defineStore('app', () => {
 
   // Computed
   const isAuthenticated = computed(() => !!user.value);
-  const hasApiKey = computed(() => !!apiKey.value);
 
   // Initialize store
   const initialize = () => {
-    loadApiKey();
-    loadProvider();
+    loadTheme();
   };
 
   return {
@@ -103,22 +124,20 @@ export const useAppStore = defineStore('app', () => {
     loadingMessage,
     toasts,
     user,
-    apiKey,
-    provider,
+    theme,
+    resolvedTheme,
 
     // Getters
     isAuthenticated,
-    hasApiKey,
 
     // Actions
     addToast,
     removeToast,
     clearToasts,
     setLoading,
-    setApiKey,
-    loadApiKey,
-    setProvider,
-    loadProvider,
+    setTheme,
+    loadTheme,
+    teardownThemeWatcher,
     setUser,
     initialize,
   };

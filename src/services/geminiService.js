@@ -2,18 +2,21 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 class GeminiService {
   constructor() {
+    this.apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     this.genAI = null;
     this.model = null;
     this.visionModel = null;
     this.imageModel = null;
+
+    if (this.apiKey) {
+      this.initializeModels();
+    } else {
+      console.error('Gemini API key not found in environment variables');
+    }
   }
 
-  initialize(apiKey) {
-    if (!apiKey) {
-      throw new Error('API key is required');
-    }
-
-    this.genAI = new GoogleGenerativeAI(apiKey);
+  initializeModels() {
+    this.genAI = new GoogleGenerativeAI(this.apiKey);
     this.model = this.genAI.getGenerativeModel({
       model: 'gemini-2.0-flash-exp',
     });
@@ -23,6 +26,13 @@ class GeminiService {
     this.imageModel = this.genAI.getGenerativeModel({
       model: 'gemini-2.5-flash-image-preview',
     });
+  }
+
+  initialize(apiKey) {
+    // This method is kept for backward compatibility but now uses env variable
+    console.warn(
+      'Gemini API key is configured via environment variables. User-provided key ignored.'
+    );
   }
 
   async generateClothingTransfer(
@@ -461,7 +471,11 @@ STRICT REQUIREMENTS:
 
   isInitialized() {
     return (
-      !!this.genAI && !!this.model && !!this.visionModel && !!this.imageModel
+      !!this.apiKey &&
+      !!this.genAI &&
+      !!this.model &&
+      !!this.visionModel &&
+      !!this.imageModel
     );
   }
 }

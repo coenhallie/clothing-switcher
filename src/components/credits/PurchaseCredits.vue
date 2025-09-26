@@ -1,166 +1,243 @@
 <template>
-  <div
-    class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-  >
-    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">
-      Purchase Credits
-    </h2>
+  <div class="flex flex-col min-h-full text-[var(--color-card-foreground)]">
+    <div class="flex flex-col gap-8 pb-40">
+      <div class="flex flex-col items-center gap-3 text-center">
+        <p
+          class="max-w-2xl text-sm leading-relaxed text-[color-mix(in_oklch,var(--color-muted-foreground)_88%,transparent)]"
+        >
+          Choose the bundle that matches your creative flow. Credits power
+          outfit transformations and never expire.
+        </p>
+      </div>
 
-    <!-- Credit Packages -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
       <div
-        v-for="package_item in creditPackages"
-        :key="package_item.credits"
-        class="relative border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md"
-        :class="{
-          'border-blue-500 bg-blue-50':
-            selectedPackage?.credits === package_item.credits,
-          'border-gray-200': selectedPackage?.credits !== package_item.credits,
-        }"
-        @click="selectPackage(package_item)"
+        class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        role="radiogroup"
+        aria-label="Choose a credit package"
       >
-        <!-- Popular Badge -->
-        <div
-          v-if="package_item.credits === 25"
-          class="absolute -top-2 left-1/2 transform -translate-x-1/2"
+        <button
+          v-for="package_item in creditPackages"
+          :key="package_item.credits"
+          type="button"
+          role="radio"
+          :aria-checked="selectedPackage?.credits === package_item.credits"
+          @click="selectPackage(package_item)"
+          class="group relative flex h-full w-full flex-col gap-4 rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-card)_94%,transparent)] p-5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-[var(--color-brand-400)] hover:bg-[color-mix(in_oklch,var(--color-brand-500)_12%,var(--color-card))] hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)]"
+          :class="{
+            'border-transparent ring-2 ring-[var(--color-brand-500)] ring-offset-2 ring-offset-[var(--color-surface)] bg-[color-mix(in_oklch,var(--color-brand-500)_18%,var(--color-card))] shadow-soft':
+              selectedPackage?.credits === package_item.credits,
+          }"
         >
-          <span
-            class="bg-blue-600 text-white text-xs font-medium px-2 py-1 rounded-full"
-          >
-            Most Popular
-          </span>
-        </div>
-
-        <!-- Best Value Badge -->
-        <div
-          v-if="package_item.credits === 100"
-          class="absolute -top-2 left-1/2 transform -translate-x-1/2"
-        >
-          <span
-            class="bg-green-600 text-white text-xs font-medium px-2 py-1 rounded-full"
-          >
-            Best Value
-          </span>
-        </div>
-
-        <div class="text-center">
-          <!-- Credits Amount -->
-          <div class="text-3xl font-bold text-gray-900 mb-2">
-            {{ package_item.credits }}
-          </div>
-          <div class="text-sm text-gray-600 mb-3">
-            Credit{{ package_item.credits !== 1 ? 's' : '' }}
-          </div>
-
-          <!-- Price -->
-          <div class="text-2xl font-bold text-blue-600 mb-2">
-            ${{ package_item.price.toFixed(2) }}
-          </div>
-
-          <!-- Price per Credit -->
-          <div class="text-sm text-gray-500 mb-4">
-            ${{ package_item.pricePerCredit.toFixed(3) }} per credit
-          </div>
-
-          <!-- Savings -->
           <div
-            v-if="package_item.credits > 5"
-            class="text-sm text-green-600 font-medium"
+            v-if="package_item.credits === 25 || package_item.credits === 100"
+            class="absolute left-1/2 top-0 -translate-y-1/2 -translate-x-1/2"
           >
-            Save {{ calculateSavings(package_item) }}%
+            <span
+              class="inline-flex items-center gap-1 rounded-full border border-[color-mix(in_oklch,var(--color-brand-500)_55%,transparent)] bg-[color-mix(in_oklch,var(--color-brand-500)_20%,var(--color-card))] px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--color-brand-600)] shadow-[0_10px_25px_-18px_color-mix(in_oklch,var(--color-brand-500)_100%,transparent)]"
+            >
+              <svg
+                class="h-3 w-3"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  d="M9.5 2.5 7 7l-4.5.65L5.5 11l-.8 4.5L9.5 13l4.8 2.5-.8-4.5L18 7.65 13.5 7l-2.5-4.5Z"
+                  stroke-width="1.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              {{ package_item.credits === 25 ? 'Most popular' : 'Best value' }}
+            </span>
           </div>
-        </div>
 
-        <!-- Selection Indicator -->
-        <div
-          v-if="selectedPackage?.credits === package_item.credits"
-          class="absolute top-2 right-2"
-        >
-          <svg
-            class="w-6 h-6 text-blue-600"
-            fill="currentColor"
-            viewBox="0 0 20 20"
+          <div
+            v-if="selectedPackage?.credits === package_item.credits"
+            class="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-[color-mix(in_oklch,var(--color-brand-500)_55%,transparent)] bg-[color-mix(in_oklch,var(--color-brand-500)_18%,var(--color-card))] text-[var(--color-brand-600)] shadow-soft"
           >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd"
-            />
-          </svg>
-        </div>
-      </div>
-    </div>
-
-    <!-- Selected Package Summary -->
-    <div v-if="selectedPackage" class="bg-gray-50 rounded-lg p-4 mb-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-2">Order Summary</h3>
-      <div class="flex justify-between items-center">
-        <span class="text-gray-600">
-          {{ selectedPackage.credits }} Credit{{
-            selectedPackage.credits !== 1 ? 's' : ''
-          }}
-        </span>
-        <span class="text-xl font-bold text-gray-900">
-          ${{ selectedPackage.price.toFixed(2) }}
-        </span>
-      </div>
-      <div class="text-sm text-gray-500 mt-1">
-        ${{ selectedPackage.pricePerCredit.toFixed(3) }} per credit
-      </div>
-    </div>
-
-    <!-- Payment Button -->
-    <div class="text-center">
-      <button
-        @click="handlePurchase"
-        :disabled="!selectedPackage || isLoading"
-        class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        <span v-if="isLoading" class="flex items-center">
-          <svg
-            class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
+            <svg
+              class="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="none"
               stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          Processing...
-        </span>
-        <span v-else-if="selectedPackage">
-          Purchase {{ selectedPackage.credits }} Credit{{
-            selectedPackage.credits !== 1 ? 's' : ''
-          }}
-          - ${{ selectedPackage.price.toFixed(2) }}
-        </span>
-        <span v-else>Select a Package</span>
-      </button>
+            >
+              <path
+                d="M5 10.5 8.5 14 15 7"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+
+          <div class="flex flex-1 flex-col items-center gap-2 text-center">
+            <p
+              class="text-xs font-semibold uppercase tracking-[0.3em] text-[color-mix(in_oklch,var(--color-muted-foreground)_80%,transparent)]"
+            >
+              {{ package_item.credits }} credit{{
+                package_item.credits !== 1 ? 's' : ''
+              }}
+            </p>
+            <p class="text-4xl font-bold text-[var(--color-card-foreground)]">
+              ${{ package_item.price.toFixed(2) }}
+            </p>
+            <p
+              class="text-sm text-[color-mix(in_oklch,var(--color-muted-foreground)_85%,transparent)]"
+            >
+              ${{ package_item.pricePerCredit.toFixed(3) }} per credit
+            </p>
+            <p
+              v-if="package_item.credits > 5"
+              class="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_oklch,var(--color-success-500)_16%,var(--color-card))] px-3 py-1 text-xs font-semibold text-[var(--color-success-500)]"
+            >
+              <svg
+                class="h-3.5 w-3.5"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  d="M4.5 10.5 8 14l7.5-8"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Save {{ calculateSavings(package_item) }}%
+            </p>
+          </div>
+
+          <div
+            class="grid w-full gap-2 text-sm text-[color-mix(in_oklch,var(--color-muted-foreground)_85%,transparent)]"
+          ></div>
+        </button>
+      </div>
     </div>
 
-    <!-- Payment Info -->
-    <div class="mt-6 text-center text-sm text-gray-500">
-      <p>Secure payment powered by Stripe</p>
-      <p class="mt-1">Credits never expire and are non-refundable</p>
-    </div>
-
-    <!-- Error Message -->
     <div
-      v-if="error"
-      class="mt-4 bg-red-50 border border-red-200 rounded-md p-3"
+      class="sticky bottom-0 -mx-6 -mb-6 space-y-4 border-t border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_97%,transparent)] px-6 pt-6 pb-6 backdrop-blur-lg"
     >
-      <p class="text-sm text-red-600">{{ error }}</p>
+      <div
+        class="rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-card)_96%,transparent)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+      >
+        <template v-if="selectedPackage">
+          <div
+            class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div class="text-center sm:text-left">
+              <p
+                class="text-xs font-semibold uppercase tracking-[0.28em] text-[color-mix(in_oklch,var(--color-muted-foreground)_80%,transparent)]"
+              >
+                Order summary
+              </p>
+              <h3
+                class="mt-1 text-xl font-semibold text-[var(--color-card-foreground)]"
+              >
+                {{ selectedPackage.credits }} credit{{
+                  selectedPackage.credits !== 1 ? 's' : ''
+                }}
+              </h3>
+            </div>
+            <div
+              class="flex flex-col items-center gap-1 text-center sm:items-end sm:text-right"
+            >
+              <p
+                class="text-3xl font-semibold text-[var(--color-card-foreground)]"
+              >
+                ${{ selectedPackage.price.toFixed(2) }}
+              </p>
+              <span
+                class="text-sm text-[color-mix(in_oklch,var(--color-muted-foreground)_85%,transparent)]"
+              >
+                ${{ selectedPackage.pricePerCredit.toFixed(3) }}/credit
+              </span>
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <div class="flex flex-col items-center gap-3 text-center">
+            <p
+              class="text-xs font-semibold uppercase tracking-[0.28em] text-[color-mix(in_oklch,var(--color-muted-foreground)_80%,transparent)]"
+            >
+              Order summary
+            </p>
+            <p
+              class="text-sm leading-relaxed text-[color-mix(in_oklch,var(--color-muted-foreground)_85%,transparent)]"
+            >
+              Select a credit package to view pricing details and checkout
+              options.
+            </p>
+          </div>
+        </template>
+      </div>
+
+      <div class="flex flex-col items-center gap-4">
+        <button
+          @click="handlePurchase"
+          :disabled="!selectedPackage || isLoading"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[var(--color-brand-500)] via-[color-mix(in_oklch,var(--color-brand-500)_70%,var(--color-brand-300))] to-[var(--color-brand-400)] px-10 py-3 text-base font-semibold text-white shadow-soft transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+        >
+          <span v-if="isLoading" class="flex items-center gap-3">
+            <svg
+              class="h-5 w-5 animate-spin text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              />
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            Processing checkout…
+          </span>
+          <span v-else-if="selectedPackage">
+            Purchase {{ selectedPackage.credits }} credit{{
+              selectedPackage.credits !== 1 ? 's' : ''
+            }}
+            · ${{ selectedPackage.price.toFixed(2) }}
+          </span>
+          <span v-else>Select a package</span>
+        </button>
+
+        <div
+          class="flex flex-col items-center gap-1 text-xs text-[color-mix(in_oklch,var(--color-muted-foreground)_80%,transparent)]"
+        >
+          <p class="inline-flex items-center gap-2">
+            <svg
+              class="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                d="M4 7h16M4 12h16M4 17h16"
+                stroke-width="1.6"
+                stroke-linecap="round"
+              />
+            </svg>
+            Secure checkout powered by Stripe
+          </p>
+          <p>Credits are non-refundable and can be shared across workspaces.</p>
+        </div>
+      </div>
+
+      <div
+        v-if="error"
+        class="rounded-2xl border border-[color-mix(in_oklch,var(--color-destructive-500)_55%,transparent)] bg-[color-mix(in_oklch,var(--color-destructive-500)_16%,var(--color-card))] p-4 text-sm text-[var(--color-destructive-500)]"
+      >
+        {{ error }}
+      </div>
     </div>
   </div>
 </template>

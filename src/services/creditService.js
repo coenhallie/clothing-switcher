@@ -28,12 +28,17 @@ class CreditService {
    * Get user's current credit balance
    */
   async getCreditBalance() {
-    const user = authService.getUser();
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
-    }
-
     try {
+      // Get current user from Supabase Auth
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
       const { data, error } = await supabase
         .from(TABLES.CREDITS)
         .select('current_balance')
@@ -59,12 +64,17 @@ class CreditService {
    * Use credits for image generation
    */
   async useCredits(amount = 1, description = 'Image generation') {
-    const user = authService.getUser();
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
-    }
-
     try {
+      // Get current user from Supabase Auth
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
       // Check current balance
       const { data: creditData, error: creditError } = await supabase
         .from(TABLES.CREDITS)
@@ -97,12 +107,6 @@ class CreditService {
 
       const newBalance = creditData.current_balance - amount;
 
-      // Update local profile
-      const profile_data = authService.getProfile();
-      if (profile_data) {
-        profile_data.credits = newBalance;
-      }
-
       return {
         success: true,
         creditsUsed: amount,
@@ -127,12 +131,17 @@ class CreditService {
     description = '',
     metadata = {}
   ) {
-    const user = authService.getUser();
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
-    }
-
     try {
+      // Get current user from Supabase Auth
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
       // Get current balance
       const { data: creditData, error: creditError } = await supabase
         .from(TABLES.CREDITS)
@@ -158,12 +167,6 @@ class CreditService {
 
       const newBalance = creditData.current_balance + amount;
 
-      // Update local profile
-      const profile_data = authService.getProfile();
-      if (profile_data) {
-        profile_data.credits = newBalance;
-      }
-
       return {
         success: true,
         creditsAdded: amount,
@@ -183,12 +186,17 @@ class CreditService {
    * Get user's credit transaction history
    */
   async getTransactionHistory(limit = 50, offset = 0) {
-    const user = authService.getUser();
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
-    }
-
     try {
+      // Get current user from Supabase Auth
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
       const { data, error } = await supabase
         .from(TABLES.CREDIT_TRANSACTIONS)
         .select('*')
@@ -239,49 +247,69 @@ class CreditService {
   /**
    * Subscribe to credit balance changes
    */
-  subscribeToCredits(callback) {
-    const user = authService.getUser();
-    if (!user) return null;
+  async subscribeToCredits(callback) {
+    try {
+      // Get current user from Supabase Auth
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    return supabase
-      .channel('credit-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: TABLES.PROFILES,
-          filter: `id=eq.${user.id}`,
-        },
-        (payload) => {
-          callback(payload.new?.credits || 0);
-        }
-      )
-      .subscribe();
+      if (userError || !user) return null;
+
+      return supabase
+        .channel('credit-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: TABLES.CREDITS,
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            callback(payload.new?.current_balance || 0);
+          }
+        )
+        .subscribe();
+    } catch (error) {
+      console.error('Subscribe to credits error:', error);
+      return null;
+    }
   }
 
   /**
    * Subscribe to transaction changes
    */
-  subscribeToTransactions(callback) {
-    const user = authService.getUser();
-    if (!user) return null;
+  async subscribeToTransactions(callback) {
+    try {
+      // Get current user from Supabase Auth
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    return supabase
-      .channel('transaction-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: TABLES.CREDIT_TRANSACTIONS,
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          callback(payload.new);
-        }
-      )
-      .subscribe();
+      if (userError || !user) return null;
+
+      return supabase
+        .channel('transaction-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: TABLES.CREDIT_TRANSACTIONS,
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            callback(payload.new);
+          }
+        )
+        .subscribe();
+    } catch (error) {
+      console.error('Subscribe to transactions error:', error);
+      return null;
+    }
   }
 }
 

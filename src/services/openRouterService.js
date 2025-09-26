@@ -14,17 +14,9 @@ class OpenRouterService {
 
   initialize(apiKey) {
     // This method is kept for backward compatibility but now uses env variable
-    if (this.apiKey) {
-      console.warn(
-        'OpenRouter API key is configured via environment variables. User-provided key ignored.'
-      );
-      return;
-    }
-
-    if (!apiKey || !apiKey.trim()) {
-      throw new Error('API key is required');
-    }
-    this.apiKey = apiKey.trim();
+    console.warn(
+      'OpenRouter API key is configured via environment variables. User-provided key ignored.'
+    );
   }
 
   async generateClothingTransfer(

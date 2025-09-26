@@ -1,67 +1,79 @@
 <template>
-  <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">
-      Reset Password
-    </h2>
+  <div class="auth-panel">
+    <header class="auth-panel__header">
+      <h2 class="auth-panel__title">Reset Password</h2>
+      <p class="auth-panel__subtitle">
+        Enter the email address associated with your account and we will send
+        you a secure reset link.
+      </p>
+    </header>
 
-    <form @submit.prevent="handleSubmit" class="space-y-4">
-      <!-- Email Field -->
-      <div>
-        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+    <form @submit.prevent="handleSubmit" class="auth-panel__form">
+      <div class="auth-panel__field">
+        <label for="email" class="auth-panel__label">
           Email
+          <span>Required</span>
         </label>
         <input
           id="email"
           v-model="form.email"
           type="email"
           required
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          :class="{ 'border-red-500': errors.email }"
-          placeholder="Enter your email"
+          autocomplete="email"
+          placeholder="you@example.com"
+          :class="[
+            'auth-panel__input',
+            { 'auth-panel__input--error': errors.email },
+          ]"
         />
-        <p v-if="errors.email" class="mt-1 text-sm text-red-600">
+        <p v-if="errors.email" class="auth-panel__feedback">
           {{ errors.email }}
         </p>
-        <p class="mt-1 text-xs text-gray-500">
-          We'll send you a link to reset your password
+        <p class="auth-panel__helper">
+          We will send the reset instructions to this address.
         </p>
       </div>
 
-      <!-- Error Message -->
-      <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-3">
-        <p class="text-sm text-red-600">{{ error }}</p>
+      <div
+        v-if="error"
+        class="auth-panel__message auth-panel__message--error"
+        role="alert"
+      >
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <span>{{ error }}</span>
       </div>
 
-      <!-- Success Message -->
       <div
         v-if="successMessage"
-        class="bg-green-50 border border-green-200 rounded-md p-3"
+        class="auth-panel__message auth-panel__message--success"
+        role="status"
       >
-        <div class="flex items-center">
-          <svg
-            class="h-5 w-5 text-green-400 mr-2"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <p class="text-sm text-green-600">{{ successMessage }}</p>
-        </div>
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <span>{{ successMessage }}</span>
       </div>
 
-      <!-- Submit Button -->
       <button
         type="submit"
         :disabled="isLoading || successMessage"
-        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        class="auth-panel__primary-btn"
       >
-        <span v-if="isLoading" class="flex items-center justify-center">
+        <span v-if="isLoading" class="flex items-center gap-2">
           <svg
-            class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+            class="auth-panel__spinner animate-spin"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -86,12 +98,11 @@
         <span v-else>Send Reset Link</span>
       </button>
 
-      <!-- Back to Sign In Link -->
-      <div class="text-center">
+      <div class="auth-panel__footer">
         <button
           type="button"
+          class="auth-panel__link-btn"
           @click="$emit('switch-to-login')"
-          class="text-sm text-blue-600 hover:text-blue-500"
         >
           ← Back to Sign In
         </button>
@@ -104,13 +115,10 @@
 import { ref, reactive } from 'vue';
 import { useAuthStore } from '../../stores/authStore.js';
 
-// Emits
 const emit = defineEmits(['success', 'switch-to-login']);
 
-// Store
 const authStore = useAuthStore();
 
-// Reactive state
 const form = reactive({
   email: '',
 });
@@ -123,7 +131,6 @@ const isLoading = ref(false);
 const error = ref('');
 const successMessage = ref('');
 
-// Methods
 const validateForm = () => {
   errors.email = '';
 
@@ -163,7 +170,6 @@ const handleSubmit = async () => {
   }
 };
 
-// Reset form when component is mounted
 const resetForm = () => {
   form.email = '';
   errors.email = '';
@@ -171,7 +177,6 @@ const resetForm = () => {
   successMessage.value = '';
 };
 
-// Expose reset method
 defineExpose({
   resetForm,
 });

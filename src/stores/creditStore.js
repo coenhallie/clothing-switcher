@@ -211,24 +211,24 @@ export const useCreditStore = defineStore('credit', () => {
     return creditService.calculatePrice(creditAmount);
   };
 
-  const subscribeToCreditChanges = () => {
+  const subscribeToCreditChanges = async () => {
     if (creditSubscription.value) {
       creditSubscription.value.unsubscribe();
     }
 
-    creditSubscription.value = creditService.subscribeToCredits(
+    creditSubscription.value = await creditService.subscribeToCredits(
       (newCredits) => {
         setCredits(newCredits);
       }
     );
   };
 
-  const subscribeToTransactionChanges = () => {
+  const subscribeToTransactionChanges = async () => {
     if (transactionSubscription.value) {
       transactionSubscription.value.unsubscribe();
     }
 
-    transactionSubscription.value = creditService.subscribeToTransactions(
+    transactionSubscription.value = await creditService.subscribeToTransactions(
       (newTransaction) => {
         addTransaction(newTransaction);
       }
@@ -247,12 +247,12 @@ export const useCreditStore = defineStore('credit', () => {
     }
   };
 
-  const initializeSubscriptions = () => {
+  const initializeSubscriptions = async () => {
     const authStore = useAuthStore();
 
     if (authStore.isAuthenticated) {
-      subscribeToCreditChanges();
-      subscribeToTransactionChanges();
+      await subscribeToCreditChanges();
+      await subscribeToTransactionChanges();
     }
   };
 

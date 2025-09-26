@@ -128,6 +128,12 @@ export const supabase = isConfigured
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
+        storage: window.localStorage,
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'supabase-js-web',
+        },
       },
     })
   : createMockClient();
@@ -144,11 +150,9 @@ if (!isConfigured) {
 
 // Database table names
 export const TABLES = {
-  USERS: 'users',
   CREDITS: 'credits',
   CREDIT_TRANSACTIONS: 'credit_transactions',
-  USER_SESSIONS: 'user_sessions',
-  IMAGE_GENERATIONS: 'image_generations',
+  GALLERY_IMAGES: 'gallery_images',
 };
 
 // Credit transaction types (matching the enum in database)
