@@ -33,3 +33,14 @@ coverage
 .env
 .env.*
 !.env.example
+
+# Tauri
+src-tauri/target
+src-tauri/gen/android/app/build
+src-tauri/gen/android/.gradle
+src-tauri/gen/android/local.properties
+src-tauri/gen/android/keystore.properties
+src-tauri/gen/apple/build
+src-tauri/gen/apple/*.xcodeproj/xcuserdata
+src-tauri/gen/apple/*.xcodeproj/project.xcworkspace/xcuserdata
+src-tauri/WixTools
