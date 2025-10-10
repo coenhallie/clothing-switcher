@@ -17,5 +17,28 @@ app.use(router);
 const appStore = useAppStore();
 appStore.initialize();
 
+// Initialize deep link listener for Tauri mobile platforms
+// This handles OAuth callbacks and magic link authentication on iOS/Android
+if (window.__TAURI__) {
+  // Dynamically import to avoid errors in non-Tauri environments
+  import('./services/deepLinkHandler.js')
+    .then(({ initializeDeepLinkListener }) => {
+      initializeDeepLinkListener(router)
+        .then((unlisten) => {
+          if (unlisten) {
+            console.log('[App] Deep link listener initialized successfully');
+            // Store unlisten function for cleanup if needed
+            window.__DEEP_LINK_UNLISTEN__ = unlisten;
+          }
+        })
+        .catch((error) => {
+          console.error('[App] Failed to initialize deep link listener:', error);
+        });
+    })
+    .catch((error) => {
+      console.error('[App] Failed to import deep link handler:', error);
+    });
+}
+
 // Mount app
 app.mount('#app');

@@ -31,4 +31,16 @@ export default defineConfig({
         }
       : undefined,
   },
+  
+  // Build configuration
+  build: {
+    rollupOptions: {
+      // Externalize Tauri plugins - they're only available in Tauri runtime, not during web build
+      external: [
+        '@tauri-apps/plugin-deep-link',
+        '@tauri-apps/plugin-shell',
+        '@tauri-apps/api/window',
+      ],
+    },
+  },
 });

@@ -40,6 +40,22 @@
     "http:allow-fetch",
     "http:allow-fetch-cancel",
     "http:allow-fetch-read-body",
-    "http:allow-fetch-send"
+    "http:allow-fetch-send",
+    "notification:default",
+    "notification:allow-is-permission-granted",
+    "notification:allow-request-permission",
+    "notification:allow-show",
+    "dialog:default",
+    "biometric:allow-authenticate",
+    "biometric:allow-status",
+    "haptics:allow-vibrate",
+    "haptics:allow-impact-feedback",
+    "haptics:allow-selection-feedback",
+    "haptics:allow-notification-feedback",
+    "deep-link:default",
+    "deep-link:allow-is-registered",
+    "deep-link:allow-register",
+    "deep-link:allow-unregister",
+    "deep-link:allow-get-current"
   ]
 }

@@ -1,61 +1,69 @@
 <template>
-  <div
-    class="relative min-h-screen bg-[var(--color-background)] text-[var(--color-foreground)]"
-  >
-    <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <div class="absolute inset-0 bg-grid opacity-60"></div>
-      <div
-        class="absolute -top-48 right-0 h-[420px] w-[420px] rounded-full bg-gradient-to-br from-indigo-400/40 via-purple-400/30 to-sky-300/20 blur-3xl"
-      ></div>
-      <div
-        class="absolute bottom-[-180px] left-[-60px] h-[520px] w-[520px] rounded-full bg-gradient-to-tr from-sky-400/25 via-emerald-400/20 to-transparent blur-3xl"
-      ></div>
-    </div>
-
-    <div class="flex min-h-screen flex-col">
-      <header
-        class="isolate z-50 border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-lg"
-      >
-        <div
-          class="container flex flex-wrap items-center justify-between gap-4 py-4"
-        >
-          <div class="flex items-center gap-3">
-            <div>
-              <router-link
-                to="/"
-                class="inline-flex items-center gap-2 text-xl font-semibold tracking-tight text-[var(--color-card-foreground)]"
+  <!-- Conditional layout rendering based on platform detection -->
+  <component :is="currentLayout">
+    <!-- Header Actions Slot for both layouts -->
+    <template #header-actions>
+      <!-- Mobile Header Actions (Compact) -->
+      <div v-if="isMobile" class="flex items-center gap-1.5">
+            <div v-if="isAuthenticated" class="flex items-center gap-1.5">
+              <button
+                @click="openPurchaseCredits"
+                class="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-xs font-semibold text-[var(--color-card-foreground)] transition active:scale-95"
+                title="Purchase credits"
               >
-                <span>SwitchFit Studio</span>
                 <span
-                  class="rounded-full border border-[color-mix(in_oklch,var(--color-brand-500)_35%,transparent)] bg-[color-mix(in_oklch,var(--color-brand-500)_18%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brand-700)] shadow-border"
+                  class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-brand-500)] text-[0.625rem] text-white shadow-soft"
                 >
-                  Alpha
+                  {{ credits }}
                 </span>
-              </router-link>
+              </button>
+
+              <button
+                @click="toggleUserMenu"
+                class="group inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-xs font-medium transition active:scale-95"
+                aria-label="Open profile menu"
+              >
+                <div
+                  class="relative flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-[color-mix(in_oklch,var(--color-brand-500)_24%,transparent)] text-[var(--color-brand-700)]"
+                >
+                  <span class="text-[0.625rem] font-semibold uppercase">
+                    {{ avatarInitials }}
+                  </span>
+                </div>
+                <svg
+                  class="h-3 w-3 text-[var(--color-muted-foreground)] transition group-hover:text-[var(--color-brand-500)]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M6 9l6 6 6-6"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
             </div>
-          </div>
 
-          <nav class="flex flex-1 items-center justify-center gap-1">
-            <router-link
-              v-for="item in navigation"
-              :key="item.name"
-              :to="item.to"
-              class="relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors"
-              :class="
-                isRouteActive(item.match)
-                  ? 'bg-[color-mix(in_oklch,var(--color-brand-500)_18%,transparent)] text-[var(--color-brand-600)] shadow-border'
-                  : 'text-[var(--color-muted-foreground)] hover:text-[var(--color-card-foreground)] hover:bg-[color-mix(in_oklch,var(--color-muted)_45%,transparent)]'
-              "
-            >
-              <span
-                class="flex h-2 w-2 rounded-full bg-[var(--color-brand-500)]"
-                v-if="isRouteActive(item.match)"
-              ></span>
-              {{ item.label }}
-            </router-link>
-          </nav>
+            <div v-else class="flex items-center gap-1.5">
+              <button
+                @click="openAuthModal('login')"
+                class="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-card-foreground)] transition active:scale-95"
+              >
+                Sign in
+              </button>
+              <button
+                @click="openAuthModal('signup')"
+                class="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-sky-500 px-3 py-1.5 text-xs font-semibold text-white shadow-soft transition active:scale-95"
+              >
+                Start
+              </button>
+            </div>
+      </div>
 
-          <div class="flex items-center gap-3">
+      <!-- Desktop Header Actions (Full Size) -->
+      <div v-else class="flex items-center gap-3">
             <div v-if="isAuthenticated" class="flex items-center gap-2">
               <button
                 @click="openPurchaseCredits"
@@ -111,7 +119,7 @@
 
                 <div
                   v-if="showUserMenu"
-                  class="absolute right-0 z-[99999] mt-2 w-56 animate-scale-in overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-soft"
+                  class="absolute right-0 top-full z-[99999] mt-2 w-56 animate-scale-in overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-soft"
                 >
                   <div class="border-b border-[var(--color-border)] px-4 py-3">
                     <p
@@ -274,44 +282,12 @@
                 Start for free
               </button>
             </div>
-          </div>
-        </div>
-      </header>
+      </div>
+    </template>
 
-      <main class="relative flex-1 pb-16 pt-10">
-        <div class="container">
-          <div class="grid gap-6">
-            <section>
-              <router-view />
-            </section>
-          </div>
-        </div>
-      </main>
-
-      <footer
-        class="border-t border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-lg"
-      >
-        <div
-          class="container flex flex-wrap items-center justify-between gap-4 py-6 text-sm text-[var(--color-muted-foreground)]"
-        >
-          <div class="flex items-center gap-2">
-            <span>© {{ currentYear }} SwitchFit Labs.</span>
-            <span class="hidden sm:inline-flex">All rights reserved.</span>
-          </div>
-          <div class="flex items-center gap-4">
-            <a href="#" class="transition hover:text-[var(--color-brand-500)]"
-              >Privacy</a
-            >
-            <a href="#" class="transition hover:text-[var(--color-brand-500)]"
-              >Terms</a
-            >
-            <a href="#" class="transition hover:text-[var(--color-brand-500)]"
-              >Changelog</a
-            >
-          </div>
-        </div>
-      </footer>
-    </div>
+    <!-- Main Content Slot -->
+    <router-view />
+  </component>
 
     <AuthModal
       :is-open="showAuthModal"
@@ -319,6 +295,21 @@
       @close="closeAuthModal"
       @auth-success="handleAuthSuccess"
       @signup-success="handleSignupSuccess"
+    />
+
+    <!-- Profile Bottom Sheet for Mobile -->
+    <ProfileBottomSheet
+      v-if="isMobile"
+      :is-open="showUserMenu"
+      :user-name="userName"
+      :avatar-initials="avatarInitials"
+      :credits="credits"
+      :theme="theme"
+      :resolved-theme="resolvedTheme"
+      @close="closeUserMenu"
+      @purchase-credits="openPurchaseCredits"
+      @theme-toggle="cycleTheme"
+      @sign-out="handleSignOut"
     />
 
     <div
@@ -479,18 +470,25 @@
         </div>
       </div>
     </div>
-  </div>
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useRoute } from 'vue-router';
 import { useAppStore } from './stores/app';
 import { useAuthStore } from './stores/authStore';
 import { useCreditStore } from './stores/creditStore';
 import { useModals } from './composables/useModals';
+import { usePlatform } from './composables/usePlatform';
+import { useAppLifecycle } from './composables/useAppLifecycle';
 import AuthModal from './components/auth/AuthModal.vue';
 import PurchaseCredits from './components/credits/PurchaseCredits.vue';
+import ProfileBottomSheet from './components/ProfileBottomSheet.vue';
+import DesktopLayout from './components/layouts/DesktopLayout.vue';
+import MobileLayout from './components/layouts/MobileLayout.vue';
+
+const route = useRoute();
 
 const appStore = useAppStore();
 const authStore = useAuthStore();
@@ -499,25 +497,18 @@ const creditStore = useCreditStore();
 const { toasts, theme, resolvedTheme } = storeToRefs(appStore);
 const { isAuthenticated, userName } = storeToRefs(authStore);
 const { credits } = storeToRefs(creditStore);
+const { isMobile, isDesktop } = usePlatform();
 
 const { removeToast, addToast, setTheme, teardownThemeWatcher } = appStore;
 
-const navigation = computed(() => {
-  const baseNavigation = [
-    { name: 'TryOn', label: 'Home', to: '/', match: 'TryOn' },
-  ];
+// Dynamically select layout component based on platform
+const currentLayout = computed(() => {
+  return isMobile.value ? MobileLayout : DesktopLayout;
+});
 
-  // Only show Gallery if user is authenticated
-  if (isAuthenticated.value) {
-    baseNavigation.push({
-      name: 'Gallery',
-      label: 'Gallery',
-      to: '/gallery',
-      match: 'Gallery',
-    });
-  }
-
-  return baseNavigation;
+// Check if currently on mobile auth screen to suppress desktop modals
+const isOnMobileAuthScreen = computed(() => {
+  return isMobile.value && route.path === '/auth';
 });
 
 // Use the global modal composable
@@ -532,6 +523,9 @@ const {
 } = useModals();
 const showUserMenu = ref(false);
 const userMenuRef = ref(null);
+
+// Initialize app lifecycle management
+const { initialize: initializeLifecycle, cleanup: cleanupLifecycle } = useAppLifecycle();
 
 let authUnsubscribe = null;
 
@@ -548,13 +542,21 @@ const closeUserMenu = () => {
   showUserMenu.value = false;
 };
 
-const handleAuthSuccess = () => {
+const handleAuthSuccess = async () => {
+  // Load credits first so we can show the count in the welcome message
+  await creditStore.loadCredits();
+  
+  const creditCount = credits.value;
+  const creditMsg = creditCount > 0
+    ? `You have ${creditCount} credit${creditCount !== 1 ? 's' : ''} remaining!`
+    : 'Your wardrobe hub is ready to explore.';
+  
   addToast({
     type: 'success',
     title: 'Welcome back to SwitchFit.',
-    message: 'Your wardrobe hub is ready to explore.',
+    message: creditMsg,
   });
-  creditStore.loadCredits();
+  
   creditStore.initializeSubscriptions();
 };
 
@@ -612,6 +614,11 @@ const handleClickOutside = (event) => {
 };
 
 const handleOpenAuthModal = (event) => {
+  // Suppress modal if on mobile auth screen
+  if (isOnMobileAuthScreen.value) {
+    console.log('[App] Skipping auth modal - mobile auth screen is active');
+    return;
+  }
   openAuthModal(event.detail || 'signup');
 };
 
@@ -630,16 +637,6 @@ const cycleTheme = () => {
   const current = theme.value ?? 'system';
   const next = modes[(modes.indexOf(current) + 1) % modes.length];
   setTheme(next);
-};
-
-const isRouteActive = (name) => {
-  if (name === 'TryOn') {
-    return window.location.pathname === '/';
-  } else if (name === 'Gallery') {
-    return window.location.pathname === '/gallery';
-  } else {
-    return window.location.pathname.includes(name.toLowerCase());
-  }
 };
 
 const avatarInitials = computed(() => {
@@ -665,7 +662,134 @@ const toastVariantClasses = (type) => {
   }
 };
 
+// Lightweight overscroll prevention - only at boundaries
+const preventOverscroll = () => {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  const MOVEMENT_THRESHOLD = 8;
+  let startY = 0;
+  let lastY = 0;
+  let pullDownActive = false;
+  let activeScrollContainer = null;
+  let initialScrollTop = 0;
+
+  const findScrollableContainer = (node) => {
+    let current = node;
+    const docScroll = document.scrollingElement || document.documentElement;
+
+    while (current && current !== document.body) {
+      const style = window.getComputedStyle(current);
+      const overflowY = style.overflowY;
+      const canScroll =
+        (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') &&
+        current.scrollHeight > current.clientHeight;
+
+      if (canScroll) {
+        return current;
+      }
+      current = current.parentElement;
+    }
+
+    return docScroll;
+  };
+
+  const resetPullState = () => {
+    pullDownActive = false;
+    startY = 0;
+    lastY = 0;
+    activeScrollContainer = null;
+    initialScrollTop = 0;
+  };
+
+  const handleTouchStart = (e) => {
+    if (!isMobile.value || e.touches.length !== 1) return;
+
+    const touchY = e.touches[0].clientY;
+    startY = touchY;
+    lastY = touchY;
+    pullDownActive = false;
+    activeScrollContainer = findScrollableContainer(e.target);
+    initialScrollTop = activeScrollContainer?.scrollTop ?? 0;
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isMobile.value || e.touches.length !== 1) return;
+
+    const target = e.target;
+    if (
+      target.closest('button') ||
+      target.closest('a') ||
+      target.closest('input, textarea, select') ||
+      target.closest('[data-allow-overscroll]')
+    ) {
+      return;
+    }
+
+    const currentY = e.touches[0].clientY;
+    const deltaFromStart = currentY - startY;
+    const deltaFromLast = currentY - lastY;
+    lastY = currentY;
+
+    const scrollContainer = activeScrollContainer ?? findScrollableContainer(target);
+    const scrollTop = scrollContainer?.scrollTop ?? 0;
+    const isAtTop = scrollTop <= 0;
+    const movedDownEnough = deltaFromStart > MOVEMENT_THRESHOLD;
+    const movedUpEnough = deltaFromStart < -MOVEMENT_THRESHOLD;
+
+    if (!pullDownActive) {
+      if (isAtTop && movedDownEnough && initialScrollTop <= 0) {
+        pullDownActive = true;
+      } else if (movedUpEnough) {
+        pullDownActive = false;
+      }
+    }
+
+    if (pullDownActive) {
+      if (deltaFromLast < -MOVEMENT_THRESHOLD) {
+        pullDownActive = false;
+        return;
+      }
+
+      if (isAtTop && deltaFromStart >= 0) {
+        e.preventDefault();
+      } else if (!isAtTop) {
+        pullDownActive = false;
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    resetPullState();
+  };
+
+  const handleTouchCancel = () => {
+    resetPullState();
+  };
+
+  if (isMobile.value) {
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    document.addEventListener('touchcancel', handleTouchCancel, { passive: true });
+  }
+
+  return () => {
+    document.removeEventListener('touchstart', handleTouchStart);
+    document.removeEventListener('touchmove', handleTouchMove);
+    document.removeEventListener('touchend', handleTouchEnd);
+    document.removeEventListener('touchcancel', handleTouchCancel);
+  };
+};
+
+let cleanupOverscroll = null;
+
 onMounted(async () => {
+  // Prevent overscroll on mobile
+  await nextTick();
+  cleanupOverscroll = preventOverscroll();
+  
   // Add troubleshooting function to window for easy access
   if (typeof window !== 'undefined') {
     window.clearAuthData = async () => {
@@ -700,7 +824,23 @@ onMounted(async () => {
     console.log('🚀 [App] Initializing app store...');
     appStore.initialize();
 
-    // First, try to restore the current session from localStorage
+    // Check if logout is required (app was closed with authenticated user)
+    console.log('🔒 [App] Checking for logout-on-close flag...');
+    const logoutRequired = authStore.shouldRequireAuth();
+    
+    if (logoutRequired) {
+      console.log('🔒 [App] Logout flag detected - enforcing re-authentication');
+      
+      // Ensure all auth data is cleared
+      await authStore.clearAllAuthData()
+      
+      console.log('✅ [App] Auth data cleared - user must re-authenticate');
+    } else {
+      console.log('✅ [App] No logout flag - proceeding with normal session restoration');
+    }
+
+    // Early session restoration to support router guard logic
+    // This will only succeed if user re-authenticates or no logout was required
     console.log('🔐 [App] Attempting to restore existing session...');
     const sessionRestoreResult = await authStore.loadCurrentUser();
 
@@ -709,6 +849,7 @@ onMounted(async () => {
       hasUser: !!sessionRestoreResult.user,
       userEmail: sessionRestoreResult.user?.email,
       error: sessionRestoreResult.error,
+      logoutWasRequired: logoutRequired,
     });
 
     // Initialize auth state listener after attempting session restore
@@ -749,6 +890,11 @@ onMounted(async () => {
       console.log('ℹ️ [App] No active session detected');
     }
 
+    // Initialize app lifecycle (handles logout on close and auto-login on startup)
+    // Must be called AFTER session restoration to avoid duplicate session loading
+    console.log('🔄 [App] Initializing app lifecycle management...');
+    await initializeLifecycle();
+
     // Set up event listeners
     console.log('🚀 [App] Setting up event listeners...');
     document.addEventListener('click', handleClickOutside);
@@ -781,9 +927,15 @@ onUnmounted(() => {
   creditStore.unsubscribeFromChanges();
   document.removeEventListener('click', handleClickOutside);
   teardownThemeWatcher();
+  
+  // Cleanup overscroll prevention
+  if (cleanupOverscroll) {
+    cleanupOverscroll();
+  }
+  
+  // Cleanup app lifecycle listeners
+  cleanupLifecycle();
 });
-
-const currentYear = new Date().getFullYear();
 </script>
 
 <style scoped>
@@ -798,5 +950,33 @@ const currentYear = new Date().getFullYear();
 
 .animate-spin-slow {
   animation: spin-slow 1.2s linear infinite;
+}
+</style>
+
+<style>
+/*
+ * CRITICAL: Native app-style scroll containment
+ * Based on how Telegram Web, Discord, and other native-feeling apps work
+ */
+#app {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  
+  /* Prevent ANY overscroll at the app level */
+  overscroll-behavior: none;
+  -webkit-overscroll-behavior: none;
+  
+  /* Hardware acceleration */
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+}
+
+/* Ensure body doesn't interfere with fixed layout */
+body {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
 }
 </style>

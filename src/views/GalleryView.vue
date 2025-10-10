@@ -1,8 +1,13 @@
 <template>
   <div class="flex flex-col gap-10">
+    <!-- Mobile-only simple title -->
+    <div class="mobile-title">
+      <h1>Gallery</h1>
+    </div>
+
     <!-- Header Section -->
     <section
-      class="relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_85%,transparent)] px-8 py-10 shadow-soft"
+      class="hero-section relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_85%,transparent)] px-8 py-10 shadow-soft"
     >
       <div
         class="pointer-events-none absolute -right-10 -top-24 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/30 via-purple-400/25 to-sky-300/20 blur-3xl"
@@ -437,6 +442,36 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Mobile-only title */
+.mobile-title {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mobile-title {
+    display: block;
+    text-align: center;
+    padding: 0.5rem 0;
+  }
+  
+  .mobile-title h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-card-foreground);
+    margin: 0;
+  }
+
+  /* Hide hero section on mobile */
+  .hero-section {
+    display: none;
+  }
+
+  /* Reduce spacing on mobile */
+  .flex.flex-col.gap-10 {
+    gap: 1.5rem;
+  }
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

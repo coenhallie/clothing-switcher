@@ -2,6 +2,8 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import authService from '../services/authService.js';
 import { supabase } from '../services/supabaseClient.js';
+import router from '../router/index.js';
+import { detectPlatformSync } from '../utils/platformDetection.js';
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -9,6 +11,7 @@ export const useAuthStore = defineStore('auth', () => {
   const profile = ref(null);
   const isLoading = ref(false);
   const error = ref(null);
+  const sessionRestorationComplete = ref(false);
 
   // Getters
   const isAuthenticated = computed(() => !!user.value);
@@ -108,6 +111,10 @@ export const useAuthStore = defineStore('auth', () => {
         console.log('🏪 [AuthStore] Setting user and profile in store');
         setUser(result.user);
         setProfile(result.profile);
+        
+        // Clear logout flag on successful authentication
+        clearLogoutFlag();
+        console.log('✅ [AuthStore] Logout flag cleared on successful sign in');
 
         console.log('🏪 [AuthStore] Auth state after successful sign in:', {
           hasUser: !!user.value,
@@ -153,6 +160,11 @@ export const useAuthStore = defineStore('auth', () => {
             );
             setUser(retryResult.user);
             setProfile(retryResult.user);
+            
+            // Clear logout flag on successful retry
+            clearLogoutFlag();
+            console.log('✅ [AuthStore] Logout flag cleared on retry success');
+            
             return {
               success: true,
               user: retryResult.user,
@@ -213,6 +225,21 @@ export const useAuthStore = defineStore('auth', () => {
         error: errorMessage,
       };
     }
+  };
+
+  /**
+   * Ensures session restoration is complete before routing
+   * Returns a promise that resolves when loadCurrentUser() completes
+   * Used by routing guards to prevent race conditions
+   */
+  const ensureSessionRestored = async () => {
+    if (sessionRestorationComplete.value) {
+      return { success: true, user: user.value, profile: profile.value };
+    }
+    
+    const result = await loadCurrentUser();
+    sessionRestorationComplete.value = true;
+    return result;
   };
 
   const loadCurrentUser = async () => {
@@ -511,6 +538,24 @@ export const useAuthStore = defineStore('auth', () => {
             console.error('💰 [AuthStore] Failed to load credits:', error);
           }
         }
+
+        // Platform-aware navigation after sign in
+        const { isMobile } = detectPlatformSync();
+        
+        if (isMobile) {
+          // Mobile: always redirect to query param or home after sign in
+          const redirectPath = router.currentRoute.value.query.redirect || '/';
+          console.log('🔄 [AuthStore] Mobile sign in - redirecting to:', redirectPath);
+          router.push(redirectPath);
+        } else {
+          // Desktop: check sessionStorage for post-auth redirect
+          const postAuthRedirect = sessionStorage.getItem('postAuthRedirect');
+          if (postAuthRedirect) {
+            console.log('🔄 [AuthStore] Desktop sign in - redirecting to:', postAuthRedirect);
+            sessionStorage.removeItem('postAuthRedirect');
+            router.push(postAuthRedirect);
+          }
+        }
       } else if (event === 'SIGNED_OUT') {
         console.log(
           '🔄 [AuthStore] Processing SIGNED_OUT - clearing store state'
@@ -528,6 +573,13 @@ export const useAuthStore = defineStore('auth', () => {
         } catch (error) {
           console.error('💰 [AuthStore] Failed to reset credits:', error);
         }
+
+        // Platform-aware navigation after sign out
+        const { isMobile } = detectPlatformSync();
+        
+        const targetPath = isMobile ? '/auth' : '/';
+        console.log('🔄 [AuthStore] Sign out - redirecting to:', targetPath);
+        router.push(targetPath);
       } else if (event === 'TOKEN_REFRESHED') {
         console.log(
           '🔄 [AuthStore] Processing TOKEN_REFRESHED - updating user'
@@ -536,6 +588,11 @@ export const useAuthStore = defineStore('auth', () => {
         setUser(session?.user || null);
         setProfile(session?.user || null);
         console.log('Token refreshed successfully');
+        
+        // TODO: Implement enhanced token refresh handling per docs/supabase-auth-configuration.md
+        // - Add retry logic for failed token refreshes
+        // - Implement cross-device session sync notifications
+        // - Add session revocation detection and cleanup
       }
     });
   };
@@ -572,15 +629,22 @@ export const useAuthStore = defineStore('auth', () => {
     }
   };
 
-  // Manual clear all auth data (for troubleshooting login issues)
+  /**
+   * Comprehensive logout that clears all authentication cache and session data
+   * Used for logout-on-close functionality
+   */
   const clearAllAuthData = async () => {
     try {
-      console.log('Clearing all authentication data...');
+      console.log('🧹 [AuthStore] Clearing all authentication data...');
 
-      // Clear Supabase session
-      await supabase.auth.signOut();
+      // 1. Sign out from Supabase to invalidate session on server
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (error) {
+        console.warn('⚠️ [AuthStore] Supabase signOut error (continuing cleanup):', error);
+      }
 
-      // Clear all local storage items
+      // 2. Clear all localStorage items (including Supabase session tokens)
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -590,23 +654,95 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       keysToRemove.forEach((key) => {
-        localStorage.removeItem(key);
+        try {
+          localStorage.removeItem(key);
+        } catch (error) {
+          console.warn(`⚠️ [AuthStore] Failed to remove localStorage key ${key}:`, error);
+        }
       });
 
-      // Clear session storage as well
-      sessionStorage.clear();
+      // 3. Clear sessionStorage completely
+      try {
+        sessionStorage.clear();
+      } catch (error) {
+        console.warn('⚠️ [AuthStore] Failed to clear sessionStorage:', error);
+      }
 
-      // Reset store state
+      // 4. Clear any cookies (if browser allows)
+      if (document.cookie) {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+          const eqPos = cookie.indexOf('=');
+          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        }
+      }
+
+      // 5. Reset store state
       setUser(null);
       setProfile(null);
       setError(null);
       setLoading(false);
+      sessionRestorationComplete.value = false;
 
-      console.log('All authentication data cleared successfully');
+      // 6. Mark that logout occurred (for startup check)
+      try {
+        localStorage.setItem('logout_on_close_flag', 'true');
+        localStorage.setItem('last_logout_timestamp', Date.now().toString());
+      } catch (error) {
+        console.warn('⚠️ [AuthStore] Failed to set logout flag:', error);
+      }
+
+      console.log('✅ [AuthStore] All authentication data cleared successfully');
       return { success: true, message: 'All authentication data cleared' };
     } catch (error) {
-      console.error('Failed to clear all auth data:', error);
+      console.error('❌ [AuthStore] Failed to clear all auth data:', error);
       return { success: false, error: error.message };
+    }
+  };
+
+  /**
+   * Logout specifically for app close events
+   * Ensures thorough cleanup without navigation
+   */
+  const logoutOnClose = async () => {
+    console.log('🚪 [AuthStore] Executing logout-on-close...');
+    
+    // Clear all auth data
+    const result = await clearAllAuthData();
+    
+    if (result.success) {
+      console.log('✅ [AuthStore] Logout-on-close completed successfully');
+    } else {
+      console.error('❌ [AuthStore] Logout-on-close failed:', result.error);
+    }
+    
+    return result;
+  };
+
+  /**
+   * Check if app should require authentication on startup
+   * Returns true if user needs to re-authenticate
+   */
+  const shouldRequireAuth = () => {
+    try {
+      const logoutFlag = localStorage.getItem('logout_on_close_flag');
+      return logoutFlag === 'true';
+    } catch (error) {
+      console.warn('⚠️ [AuthStore] Failed to check logout flag:', error);
+      return false;
+    }
+  };
+
+  /**
+   * Clear the logout flag after successful authentication
+   */
+  const clearLogoutFlag = () => {
+    try {
+      localStorage.removeItem('logout_on_close_flag');
+      localStorage.removeItem('last_logout_timestamp');
+    } catch (error) {
+      console.warn('⚠️ [AuthStore] Failed to clear logout flag:', error);
     }
   };
 
@@ -616,6 +752,7 @@ export const useAuthStore = defineStore('auth', () => {
     profile,
     isLoading,
     error,
+    sessionRestorationComplete,
 
     // Getters
     isAuthenticated,
@@ -633,6 +770,7 @@ export const useAuthStore = defineStore('auth', () => {
     signIn,
     signOut,
     loadCurrentUser,
+    ensureSessionRestored,
     updateProfile,
     resetPassword,
     updatePassword,
@@ -641,5 +779,10 @@ export const useAuthStore = defineStore('auth', () => {
     clearCorruptedSession,
     clearAllAuthData,
     validateExistingSession,
+    
+    // Logout-on-close specific
+    logoutOnClose,
+    shouldRequireAuth,
+    clearLogoutFlag,
   };
 });

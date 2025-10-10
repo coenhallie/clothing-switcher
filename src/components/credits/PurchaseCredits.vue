@@ -1,9 +1,9 @@
 <template>
   <div class="flex flex-col min-h-full text-[var(--color-card-foreground)]">
-    <div class="flex flex-col gap-8 pb-40">
-      <div class="flex flex-col items-center gap-3 text-center">
+    <div class="flex flex-col gap-6 sm:gap-8 pb-32 sm:pb-40">
+      <div class="flex flex-col items-center gap-2 sm:gap-3 text-center">
         <p
-          class="max-w-2xl text-sm leading-relaxed text-[color-mix(in_oklch,var(--color-muted-foreground)_88%,transparent)]"
+          class="max-w-2xl text-xs sm:text-sm leading-relaxed text-[color-mix(in_oklch,var(--color-muted-foreground)_88%,transparent)]"
         >
           Choose the bundle that matches your creative flow. Credits power
           outfit transformations and never expire.
@@ -11,7 +11,7 @@
       </div>
 
       <div
-        class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        class="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3"
         role="radiogroup"
         aria-label="Choose a credit package"
       >
@@ -22,7 +22,7 @@
           role="radio"
           :aria-checked="selectedPackage?.credits === package_item.credits"
           @click="selectPackage(package_item)"
-          class="group relative flex h-full w-full flex-col gap-4 rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-card)_94%,transparent)] p-5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-[var(--color-brand-400)] hover:bg-[color-mix(in_oklch,var(--color-brand-500)_12%,var(--color-card))] hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)]"
+          class="group relative flex h-full w-full flex-col gap-3 sm:gap-4 rounded-xl sm:rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-card)_94%,transparent)] p-4 sm:p-5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-[var(--color-brand-400)] hover:bg-[color-mix(in_oklch,var(--color-brand-500)_12%,var(--color-card))] hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)]"
           :class="{
             'border-transparent ring-2 ring-[var(--color-brand-500)] ring-offset-2 ring-offset-[var(--color-surface)] bg-[color-mix(in_oklch,var(--color-brand-500)_18%,var(--color-card))] shadow-soft':
               selectedPackage?.credits === package_item.credits,
@@ -33,10 +33,10 @@
             class="absolute left-1/2 top-0 -translate-y-1/2 -translate-x-1/2"
           >
             <span
-              class="inline-flex items-center gap-1 rounded-full border border-[color-mix(in_oklch,var(--color-brand-500)_55%,transparent)] bg-[color-mix(in_oklch,var(--color-brand-500)_20%,var(--color-card))] px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--color-brand-600)] shadow-[0_10px_25px_-18px_color-mix(in_oklch,var(--color-brand-500)_100%,transparent)]"
+              class="inline-flex items-center gap-1 rounded-full border border-[color-mix(in_oklch,var(--color-brand-500)_55%,transparent)] bg-[color-mix(in_oklch,var(--color-brand-500)_20%,var(--color-card))] px-2 sm:px-3 py-0.5 sm:py-1 text-[0.5625rem] sm:text-[0.625rem] font-semibold uppercase tracking-wide sm:tracking-widest text-[var(--color-brand-600)] shadow-[0_10px_25px_-18px_color-mix(in_oklch,var(--color-brand-500)_100%,transparent)]"
             >
               <svg
-                class="h-3 w-3"
+                class="h-2.5 sm:h-3 w-2.5 sm:w-3"
                 viewBox="0 0 20 20"
                 fill="none"
                 stroke="currentColor"
@@ -54,10 +54,10 @@
 
           <div
             v-if="selectedPackage?.credits === package_item.credits"
-            class="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-[color-mix(in_oklch,var(--color-brand-500)_55%,transparent)] bg-[color-mix(in_oklch,var(--color-brand-500)_18%,var(--color-card))] text-[var(--color-brand-600)] shadow-soft"
+            class="absolute right-3 sm:right-4 top-3 sm:top-4 flex h-7 sm:h-9 w-7 sm:w-9 items-center justify-center rounded-full border border-[color-mix(in_oklch,var(--color-brand-500)_55%,transparent)] bg-[color-mix(in_oklch,var(--color-brand-500)_18%,var(--color-card))] text-[var(--color-brand-600)] shadow-soft"
           >
             <svg
-              class="h-5 w-5"
+              class="h-4 sm:h-5 w-4 sm:w-5"
               viewBox="0 0 20 20"
               fill="none"
               stroke="currentColor"
@@ -71,28 +71,28 @@
             </svg>
           </div>
 
-          <div class="flex flex-1 flex-col items-center gap-2 text-center">
+          <div class="flex flex-1 flex-col items-center gap-1.5 sm:gap-2 text-center">
             <p
-              class="text-xs font-semibold uppercase tracking-[0.3em] text-[color-mix(in_oklch,var(--color-muted-foreground)_80%,transparent)]"
+              class="text-[0.625rem] sm:text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.3em] text-[color-mix(in_oklch,var(--color-muted-foreground)_80%,transparent)]"
             >
               {{ package_item.credits }} credit{{
                 package_item.credits !== 1 ? 's' : ''
               }}
             </p>
-            <p class="text-4xl font-bold text-[var(--color-card-foreground)]">
+            <p class="text-2xl sm:text-4xl font-bold text-[var(--color-card-foreground)]">
               ${{ package_item.price.toFixed(2) }}
             </p>
             <p
-              class="text-sm text-[color-mix(in_oklch,var(--color-muted-foreground)_85%,transparent)]"
+              class="text-xs sm:text-sm text-[color-mix(in_oklch,var(--color-muted-foreground)_85%,transparent)]"
             >
               ${{ package_item.pricePerCredit.toFixed(3) }} per credit
             </p>
             <p
               v-if="package_item.credits > 5"
-              class="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_oklch,var(--color-success-500)_16%,var(--color-card))] px-3 py-1 text-xs font-semibold text-[var(--color-success-500)]"
+              class="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_oklch,var(--color-success-500)_16%,var(--color-card))] px-2 sm:px-3 py-0.5 sm:py-1 text-[0.625rem] sm:text-xs font-semibold text-[var(--color-success-500)]"
             >
               <svg
-                class="h-3.5 w-3.5"
+                class="h-3 sm:h-3.5 w-3 sm:w-3.5"
                 viewBox="0 0 20 20"
                 fill="none"
                 stroke="currentColor"
@@ -116,23 +116,23 @@
     </div>
 
     <div
-      class="sticky bottom-0 -mx-6 -mb-6 space-y-4 border-t border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_97%,transparent)] px-6 pt-6 pb-6 backdrop-blur-lg"
+      class="sticky bottom-0 -mx-6 -mb-6 space-y-3 sm:space-y-4 border-t border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_97%,transparent)] px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-6 backdrop-blur-lg"
     >
       <div
-        class="rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-card)_96%,transparent)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+        class="rounded-xl sm:rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-card)_96%,transparent)] p-3 sm:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
       >
         <template v-if="selectedPackage">
           <div
-            class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            class="flex flex-col gap-2 sm:gap-4 sm:flex-row sm:items-center sm:justify-between"
           >
             <div class="text-center sm:text-left">
               <p
-                class="text-xs font-semibold uppercase tracking-[0.28em] text-[color-mix(in_oklch,var(--color-muted-foreground)_80%,transparent)]"
+                class="text-[0.625rem] sm:text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.28em] text-[color-mix(in_oklch,var(--color-muted-foreground)_80%,transparent)]"
               >
                 Order summary
               </p>
               <h3
-                class="mt-1 text-xl font-semibold text-[var(--color-card-foreground)]"
+                class="mt-0.5 sm:mt-1 text-base sm:text-xl font-semibold text-[var(--color-card-foreground)]"
               >
                 {{ selectedPackage.credits }} credit{{
                   selectedPackage.credits !== 1 ? 's' : ''
@@ -140,15 +140,15 @@
               </h3>
             </div>
             <div
-              class="flex flex-col items-center gap-1 text-center sm:items-end sm:text-right"
+              class="flex flex-col items-center gap-0.5 sm:gap-1 text-center sm:items-end sm:text-right"
             >
               <p
-                class="text-3xl font-semibold text-[var(--color-card-foreground)]"
+                class="text-xl sm:text-3xl font-semibold text-[var(--color-card-foreground)]"
               >
                 ${{ selectedPackage.price.toFixed(2) }}
               </p>
               <span
-                class="text-sm text-[color-mix(in_oklch,var(--color-muted-foreground)_85%,transparent)]"
+                class="text-xs sm:text-sm text-[color-mix(in_oklch,var(--color-muted-foreground)_85%,transparent)]"
               >
                 ${{ selectedPackage.pricePerCredit.toFixed(3) }}/credit
               </span>
@@ -156,14 +156,14 @@
           </div>
         </template>
         <template v-else>
-          <div class="flex flex-col items-center gap-3 text-center">
+          <div class="flex flex-col items-center gap-2 sm:gap-3 text-center">
             <p
-              class="text-xs font-semibold uppercase tracking-[0.28em] text-[color-mix(in_oklch,var(--color-muted-foreground)_80%,transparent)]"
+              class="text-[0.625rem] sm:text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.28em] text-[color-mix(in_oklch,var(--color-muted-foreground)_80%,transparent)]"
             >
               Order summary
             </p>
             <p
-              class="text-sm leading-relaxed text-[color-mix(in_oklch,var(--color-muted-foreground)_85%,transparent)]"
+              class="text-xs sm:text-sm leading-relaxed text-[color-mix(in_oklch,var(--color-muted-foreground)_85%,transparent)]"
             >
               Select a credit package to view pricing details and checkout
               options.
@@ -172,11 +172,11 @@
         </template>
       </div>
 
-      <div class="flex flex-col items-center gap-4">
+      <div class="flex flex-col items-center gap-3 sm:gap-4">
         <button
           @click="handlePurchase"
           :disabled="!selectedPackage || isLoading"
-          class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[var(--color-brand-500)] via-[color-mix(in_oklch,var(--color-brand-500)_70%,var(--color-brand-300))] to-[var(--color-brand-400)] px-10 py-3 text-base font-semibold text-white shadow-soft transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[var(--color-brand-500)] via-[color-mix(in_oklch,var(--color-brand-500)_70%,var(--color-brand-300))] to-[var(--color-brand-400)] px-6 sm:px-10 py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-white shadow-soft transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           <span v-if="isLoading" class="flex items-center gap-3">
             <svg
@@ -211,11 +211,11 @@
         </button>
 
         <div
-          class="flex flex-col items-center gap-1 text-xs text-[color-mix(in_oklch,var(--color-muted-foreground)_80%,transparent)]"
+          class="flex flex-col items-center gap-0.5 sm:gap-1 text-[0.625rem] sm:text-xs text-[color-mix(in_oklch,var(--color-muted-foreground)_80%,transparent)]"
         >
-          <p class="inline-flex items-center gap-2">
+          <p class="inline-flex items-center gap-1.5 sm:gap-2">
             <svg
-              class="h-4 w-4"
+              class="h-3 sm:h-4 w-3 sm:w-4"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -228,7 +228,7 @@
             </svg>
             Secure checkout powered by Stripe
           </p>
-          <p>Credits are non-refundable and can be shared across workspaces.</p>
+          <p class="hidden sm:block">Credits are non-refundable and can be shared across workspaces.</p>
         </div>
       </div>
 
@@ -246,13 +246,17 @@
 import { ref, computed } from 'vue';
 import { useCreditStore } from '../../stores/creditStore.js';
 import { storeToRefs } from 'pinia';
+import { useTauriPlugins } from '@/composables/useTauriPlugins';
 
 // Emits
 const emit = defineEmits(['purchase-initiated', 'purchase-completed']);
 
 // Store
 const creditStore = useCreditStore();
-const { creditPackages, isLoading, error } = storeToRefs(creditStore);
+const { creditPackages, isLoading, error, credits } = storeToRefs(creditStore);
+
+// Tauri plugins for haptics and native dialogs
+const { triggerHaptic, showConfirmDialog, showNotification } = useTauriPlugins();
 
 // Reactive state
 const selectedPackage = ref(null);
@@ -266,6 +270,8 @@ const basePrice = computed(() => {
 
 // Methods
 const selectPackage = (package_item) => {
+  // Trigger subtle haptic feedback for selection
+  triggerHaptic('selection');
   selectedPackage.value = package_item;
 };
 
@@ -279,19 +285,65 @@ const calculateSavings = (package_item) => {
 const handlePurchase = async () => {
   if (!selectedPackage.value) return;
 
+  // Show native confirmation dialog before proceeding
+  const confirmed = await showConfirmDialog(
+    'Confirm Purchase',
+    `Purchase ${selectedPackage.value.credits} credit${selectedPackage.value.credits !== 1 ? 's' : ''} for $${selectedPackage.value.price.toFixed(2)}?`
+  );
+
+  // If user cancels, provide light haptic feedback and return
+  if (!confirmed) {
+    triggerHaptic('impact', 'light');
+    return;
+  }
+
+  // Trigger medium impact haptic for primary action
+  triggerHaptic('impact', 'medium');
+
   emit('purchase-initiated', selectedPackage.value);
 
   try {
     // This will be implemented when we add Stripe integration
-    // For now, we'll emit the event and let the parent handle it
+    // For now, simulate a purchase by adding credits directly
     console.log('Initiating purchase for:', selectedPackage.value);
 
-    // TODO: Implement Stripe checkout
+    // Simulate purchase (remove this when Stripe is integrated)
+    const result = await creditStore.addCredits(
+      selectedPackage.value.credits,
+      'purchased',
+      `Purchased ${selectedPackage.value.credits} credits`,
+      { price: selectedPackage.value.price }
+    );
+
+    if (result.success) {
+      // Success haptic feedback
+      triggerHaptic('notification', 'success');
+      
+      // Show native success notification
+      await showNotification(
+        'Purchase Successful',
+        `You now have ${credits.value} credit${credits.value !== 1 ? 's' : ''}`
+      );
+
+      emit('purchase-completed', result);
+    } else {
+      // Error haptic feedback
+      triggerHaptic('notification', 'error');
+      console.error('Purchase failed:', result.error);
+    }
+
+    // TODO: Replace simulation with Stripe checkout
     // const result = await initiateStripeCheckout(selectedPackage.value)
     // if (result.success) {
+    //   triggerHaptic('notification', 'success')
+    //   await showNotification('Purchase Successful', `You now have ${credits.value} credits`)
     //   emit('purchase-completed', result)
+    // } else {
+    //   triggerHaptic('notification', 'error')
     // }
   } catch (err) {
+    // Error haptic feedback on exception
+    triggerHaptic('notification', 'error');
     console.error('Purchase error:', err);
   }
 };

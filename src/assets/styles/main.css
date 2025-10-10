@@ -55,15 +55,105 @@
 @layer base {
   :root {
     color-scheme: light;
+    
+    /* Typography scale */
+    --font-xs: 0.75rem;      /* 12px */
+    --font-sm: 0.875rem;     /* 14px */
+    --font-base: 1rem;       /* 16px */
+    --font-lg: 1.125rem;     /* 18px */
+    --font-xl: 1.25rem;      /* 20px */
+    --font-2xl: 1.5rem;      /* 24px */
+    --font-3xl: 1.75rem;     /* 28px */
+    --font-4xl: 2rem;        /* 32px */
+    
+    /* Line heights */
+    --leading-none: 1;
+    --leading-tight: 1.25;
+    --leading-snug: 1.375;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.625;
+    --leading-loose: 2;
+    
+    /* Font weights */
+    --font-light: 300;
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+    
+    /* Touch targets */
+    --touch-target-min: 44px;  /* WCAG AAA */
+    --touch-target-aa: 24px;   /* WCAG AA */
+  }
+  /* ============================================
+     TAURI WEBVIEW NORMALIZATIONS
+     Critical for iOS WKWebView & Android WebView
+     ============================================ */
+
+  /* Prevent font size adjustments */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    
+    /* Prevent Android font boosting */
+    max-height: 999999px;
+    
+    /* CRITICAL: Disable ALL overscroll bounce effects for native desktop feel */
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    overscroll-behavior-x: none;
+    -webkit-overscroll-behavior: none;
+    -webkit-overscroll-behavior-y: none;
+    -webkit-overscroll-behavior-x: none;
+    
+    /* Disable momentum scrolling on navigation elements */
+    -webkit-overflow-scrolling: auto;
+    
+    /* Prevent pull-to-refresh on mobile */
+    touch-action: pan-y;
   }
 
+  /* Consistent box model */
+  *,
+  *::before,
+  *::after {
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+  }
+
+  /* Remove tap highlight (use custom states) */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+
   body {
-    font-family: var(--font-sans);
+    font-family: -apple-system, BlinkMacSystemFont,
+                 'Segoe UI', Roboto,
+                 'Helvetica Neue', Arial,
+                 var(--font-sans), sans-serif;
     background-color: var(--color-background);
     color: var(--color-foreground);
-    min-height: 100vh;
+    font-size: 1rem; /* Explicit 16px base */
+    line-height: 1.5; /* WCAG requirement */
+    font-weight: 400;
+    
+    /* Optimize font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    scroll-behavior: smooth;
+    
+    /* CRITICAL: Fixed body prevents document-level scrolling */
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    
+    /* Prevent any overscroll behavior at body level */
+    overscroll-behavior: none;
+    -webkit-overscroll-behavior: none;
   }
 
   .dark {
@@ -219,16 +309,17 @@
 
   .auth-panel__title {
     font-family: var(--font-display);
-    font-size: clamp(1.6rem, 4vw, 2.35rem);
+    font-size: clamp(1.75rem, 4vw, 2rem);
     font-weight: 700;
     letter-spacing: -0.015em;
     color: var(--color-card-foreground);
+    line-height: 1.2;
   }
 
   .auth-panel__subtitle {
-    font-size: clamp(0.9rem, 2vw, 1rem);
+    font-size: 1rem;
     color: color-mix(in oklch, var(--color-muted-foreground) 75%, transparent);
-    line-height: 1.55;
+    line-height: 1.5;
   }
 
   .auth-panel__form {
@@ -245,18 +336,19 @@
 
   .auth-panel__label {
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.875rem;
     letter-spacing: 0.01em;
     color: color-mix(in oklch, var(--color-card-foreground) 85%, transparent);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
+    margin-bottom: 0.5rem;
   }
 
   .auth-panel__label span {
     font-weight: 500;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: color-mix(in oklch, var(--color-muted-foreground) 70%, transparent);
   }
 
@@ -272,7 +364,9 @@
     border: 1px solid color-mix(in oklch, var(--color-border) 72%, transparent);
     background: color-mix(in oklch, var(--color-surface) 90%, transparent);
     padding: 0.75rem 1rem;
-    font-size: 0.95rem;
+    font-size: 1rem;
+    min-height: 44px;
+    line-height: 1.5;
     color: var(--color-card-foreground);
     transition: border-color 0.18s ease, box-shadow 0.18s ease,
       background 0.18s ease, transform 0.18s ease;
@@ -302,14 +396,17 @@
   }
 
   .auth-panel__feedback {
-    font-size: 0.8rem;
+    font-size: 0.875rem;
+    line-height: 1.43;
     color: color-mix(in oklch, var(--color-destructive-500) 78%, transparent);
+    margin-top: 0.25rem;
   }
 
   .auth-panel__helper {
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     color: color-mix(in oklch, var(--color-muted-foreground) 75%, transparent);
     line-height: 1.5;
+    margin-top: 0.25rem;
   }
 
   .auth-panel__password-toggle {
@@ -347,9 +444,9 @@
     gap: 0.65rem;
     border-radius: var(--radius-md);
     padding: 0.85rem 1rem;
-    font-size: 0.85rem;
+    font-size: 0.875rem;
     border: 1px solid transparent;
-    line-height: 1.5;
+    line-height: 1.43;
   }
 
   .auth-panel__message svg {
@@ -392,9 +489,12 @@
     gap: 0.6rem;
     width: 100%;
     border-radius: 999px;
-    padding: 0.85rem 1.5rem;
+    padding: 0.75rem 1.5rem;
     font-weight: 600;
-    font-size: 0.98rem;
+    font-size: 1rem;
+    min-height: 44px;
+    line-height: 1.25;
+    letter-spacing: 0.025em;
     background-image: linear-gradient(
       135deg,
       var(--color-brand-500) 0%,
@@ -440,7 +540,10 @@
     background: none;
     color: color-mix(in oklch, var(--color-brand-600) 85%, transparent);
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.875rem;
+    padding: 0.625rem 1rem;
+    min-height: 36px;
+    line-height: 1.25;
     cursor: pointer;
     transition: color 0.18s ease, transform 0.18s ease;
     align-self: center;
@@ -485,7 +588,8 @@
     flex-direction: column;
     gap: 0.8rem;
     text-align: center;
-    font-size: 0.85rem;
+    font-size: 0.875rem;
+    line-height: 1.43;
     color: color-mix(in oklch, var(--color-muted-foreground) 85%, transparent);
   }
 
@@ -507,13 +611,233 @@
     border: 1px solid
       color-mix(in oklch, var(--color-success-500) 32%, transparent);
     color: color-mix(in oklch, var(--color-success-500) 80%, transparent);
-    font-size: 0.85rem;
-    line-height: 1.55;
+    font-size: 0.875rem;
+    line-height: 1.43;
   }
 
   .auth-panel__highlight svg {
     width: 1.15rem;
     height: 1.15rem;
+  }
+  /* ============================================
+     MOBILE AUTH COMPONENT CLASSES
+     Per docs/mobile-auth-tailwind-mapping.md
+     ============================================ */
+  
+  /* Mobile Auth Container - Full-screen with safe areas */
+  .mobile-auth-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-background);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    overflow-y: auto;
+    overscroll-behavior: none;
+  }
+  
+  /* Mobile Auth Header - Sticky header with backdrop blur */
+  .mobile-auth-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: color-mix(in oklch, var(--color-background) 95%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 1rem 1rem;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-border) 40%, transparent);
+    /* TODO: Add slide-down entrance animation */
+  }
+  
+  @media (min-width: 640px) {
+    .mobile-auth-header {
+      padding: 1rem 1.5rem;
+    }
+  }
+  
+  /* Mobile Auth Footer - Sticky footer with safe-area bottom */
+  .mobile-auth-footer {
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(
+      to top,
+      var(--color-background) 0%,
+      var(--color-background) 60%,
+      transparent 100%
+    );
+    padding: 1.5rem 1rem;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    /* TODO: Add fade-in gradient animation on scroll */
+  }
+  
+  @media (min-width: 640px) {
+    .mobile-auth-footer {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+  
+  /* Auth Method Card - Touch-optimized selection cards */
+  .auth-method-card {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-border);
+    transition: all 0.2s cubic-bezier(0.21, 1, 0.27, 1);
+    min-height: 44px; /* WCAG AAA touch target */
+    cursor: pointer;
+    /* TODO: Add card entrance animation with stagger */
+  }
+  
+  .auth-method-card:hover {
+    border-color: color-mix(in oklch, var(--color-brand-500) 30%, transparent);
+    background-color: color-mix(in oklch, var(--color-card) 95%, transparent);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+  
+  .auth-method-card:active {
+    transform: scale(0.98);
+  }
+  
+  .auth-method-card:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-ring) 25%, transparent);
+  }
+  
+  /* Mobile Input - Form inputs with iOS zoom prevention */
+  .mobile-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem; /* 16px minimum to prevent iOS zoom */
+    min-height: 44px; /* WCAG AAA touch target */
+    background-color: color-mix(in oklch, var(--color-surface) 90%, transparent);
+    border: 1px solid color-mix(in oklch, var(--color-border) 70%, transparent);
+    border-radius: var(--radius-md);
+    color: var(--color-card-foreground);
+    transition: all 0.2s cubic-bezier(0.21, 1, 0.27, 1);
+  }
+  
+  .mobile-input::placeholder {
+    color: color-mix(in oklch, var(--color-muted-foreground) 65%, transparent);
+    opacity: 0.9;
+  }
+  
+  .mobile-input:focus {
+    outline: none;
+    border-color: color-mix(in oklch, var(--color-brand-500) 55%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-brand-500) 22%, transparent);
+    background-color: color-mix(in oklch, var(--color-surface) 95%, transparent);
+  }
+  
+  .mobile-input--error {
+    border-color: color-mix(in oklch, var(--color-destructive-500) 65%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-destructive-500) 18%, transparent);
+  }
+  
+  .mobile-input--error:focus {
+    border-color: var(--color-destructive-500);
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-destructive-500) 22%, transparent);
+  }
+  
+  /* Primary Mobile CTA - Touch-optimized primary button */
+  .mobile-cta-primary {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    min-height: 44px; /* WCAG AAA touch target */
+    color: white;
+    background-image: linear-gradient(
+      135deg,
+      var(--color-brand-500) 0%,
+      var(--color-brand-600) 100%
+    );
+    border-radius: 999px;
+    border: none;
+    box-shadow: 0 10px 15px -3px color-mix(in oklch, var(--color-brand-700) 20%, transparent);
+    transition: all 0.2s cubic-bezier(0.21, 1, 0.27, 1);
+    cursor: pointer;
+    /* TODO: Add press ripple effect animation */
+  }
+  
+  .mobile-cta-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px -4px color-mix(in oklch, var(--color-brand-700) 25%, transparent);
+    filter: brightness(1.05);
+  }
+  
+  .mobile-cta-primary:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  
+  .mobile-cta-primary:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-ring) 35%, transparent);
+  }
+  
+  .mobile-cta-primary:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  
+  /* Secondary Mobile Button - Ghost/outline button */
+  .mobile-cta-secondary {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    min-height: 44px; /* WCAG AAA touch target */
+    color: color-mix(in oklch, var(--color-brand-600) 85%, transparent);
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    transition: all 0.2s cubic-bezier(0.21, 1, 0.27, 1);
+    cursor: pointer;
+  }
+  
+  .mobile-cta-secondary:hover {
+    background-color: var(--color-muted);
+    border-color: color-mix(in oklch, var(--color-brand-500) 30%, transparent);
+    color: var(--color-brand-500);
+  }
+  
+  .mobile-cta-secondary:active {
+    transform: scale(0.98);
+  }
+  
+  .mobile-cta-secondary:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-brand-500) 22%, transparent);
+  }
+  
+  /* Mobile Section Container */
+  .mobile-section {
+    padding: 1.5rem 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .mobile-section {
+      padding: 1.5rem 1.5rem;
+    }
+  }
+  
+  /* Mobile Card Stack - Vertical spacing for cards */
+  .mobile-card-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 }
 
@@ -573,6 +897,49 @@
 }
 
 @layer utilities {
+
+  /* Typography scale utilities */
+  .text-xs { font-size: 0.75rem; }      /* 12px */
+  .text-sm { font-size: 0.875rem; }     /* 14px */
+  .text-base { font-size: 1rem; }       /* 16px */
+  .text-lg { font-size: 1.125rem; }     /* 18px */
+  .text-xl { font-size: 1.25rem; }      /* 20px */
+  .text-2xl { font-size: 1.5rem; }      /* 24px */
+  .text-3xl { font-size: 1.75rem; }     /* 28px */
+  .text-4xl { font-size: 2rem; }        /* 32px */
+
+  /* Font weights */
+  .font-light { font-weight: 300; }
+  .font-normal { font-weight: 400; }
+  .font-medium { font-weight: 500; }
+  .font-semibold { font-weight: 600; }
+  .font-bold { font-weight: 700; }
+
+  /* Line heights */
+  .leading-tight { line-height: 1.25; }
+  .leading-snug { line-height: 1.375; }
+  .leading-normal { line-height: 1.5; }
+  .leading-relaxed { line-height: 1.625; }
+  .leading-loose { line-height: 2; }
+
+  /* Touch target helpers */
+  .touch-target-aa {
+    min-height: 24px;
+    min-width: 24px;
+  }
+
+  .touch-target-aaa {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Badge utilities */
+  .badge-xs {
+    font-size: 0.625rem; /* 10px */
+    line-height: 1;
+    padding: 0.2em 0.4em;
+    font-weight: 600;
+  }
   .shadow-soft {
     box-shadow: var(--shadow-soft);
   }
@@ -653,6 +1020,134 @@
     var(--color-muted-foreground) 55%,
     transparent
   );
+}
+
+/* Mobile-specific utilities */
+@layer utilities {
+  .mobile-hidden {
+    display: none;
+  }
+
+  .desktop-hidden {
+    display: block;
+  }
+
+  @media (min-width: 768px) {
+    .mobile-hidden {
+      display: block;
+    }
+
+    .desktop-hidden {
+      display: none;
+    }
+  }
+
+  /* Safe area utilities for mobile devices */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  /* Mobile touch optimization */
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  /* Prevent text selection on touch devices for better UX */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Mobile-optimized container with smaller padding */
+  .mobile-container {
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .mobile-container {
+      padding-inline: clamp(1.25rem, 3vw, 2.5rem);
+    }
+  }
+}
+
+/* Mobile layout optimizations */
+@media (max-width: 767px) {
+  .container {
+    padding-inline: 1rem;
+  }
+
+  /* Optimize card spacing on mobile */
+  .card {
+    border-radius: var(--radius-md);
+  }
+
+  /* Mobile heading styles - optimized for small screens */
+  h1 {
+    font-size: clamp(1.75rem, 5vw, 2rem);
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    font-weight: 700;
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 4vw, 1.75rem);
+    line-height: 1.25;
+    margin-bottom: 0.875rem;
+    font-weight: 700;
+  }
+
+  h3 {
+    font-size: clamp(1.25rem, 3vw, 1.5rem);
+    line-height: 1.3;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+  }
+
+  /* Add missing heading levels */
+  h4 {
+    font-size: 1.25rem;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  h5 {
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  h6 {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+/* Dynamic viewport height support for mobile browsers */
+@supports (height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

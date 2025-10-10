@@ -122,11 +122,15 @@ const createMockClient = () => ({
 });
 
 // Create the Supabase client or mock client
+// TODO: Migrate to platform-specific secure storage for mobile per docs/supabase-auth-configuration.md
+// - Use Tauri's secure storage plugin for mobile platforms (Android/iOS)
+// - Keep localStorage for web/desktop
+// - Implement storage adapter pattern for seamless platform switching
 export const supabase = isConfigured
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: true,
-        persistSession: true,
+        persistSession: true, // Currently using localStorage; will migrate to secure storage
         detectSessionInUrl: true,
         storage: window.localStorage,
       },

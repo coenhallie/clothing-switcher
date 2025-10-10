@@ -5,9 +5,20 @@
     <link rel="icon" href="/favicon.ico" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"
     />
     <meta name="theme-color" content="#1f2937" />
+    <!-- Disable pull-to-refresh on Android Chrome -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- Prevent overscroll bounce effect -->
+    <style>
+      html {
+        overscroll-behavior-y: none;
+        overscroll-behavior-x: none;
+      }
+    </style>
     <meta
       name="description"
       content="SwitchFit Studio — modern AI wardrobe companion for effortless outfit experimentation."

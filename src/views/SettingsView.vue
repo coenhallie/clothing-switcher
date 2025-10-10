@@ -1,7 +1,12 @@
 <template>
   <div class="flex flex-col gap-10">
+    <!-- Mobile-only simple title -->
+    <div class="mobile-title">
+      <h1>Settings</h1>
+    </div>
+
     <section
-      class="relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_85%,transparent)] px-8 py-10 shadow-soft"
+      class="hero-section relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_85%,transparent)] px-8 py-10 shadow-soft"
     >
       <div
         class="pointer-events-none absolute -right-10 -top-24 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/30 via-purple-400/25 to-sky-300/20 blur-3xl"
@@ -253,6 +258,127 @@
       </div>
 
       <div class="space-y-6">
+        <!-- User Profile Section -->
+        <div
+          v-if="isAuthenticated"
+          class="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-soft"
+        >
+          <h2 class="text-xl font-semibold text-[var(--color-card-foreground)]">
+            Account
+          </h2>
+          <div
+            class="mt-5 space-y-4 text-sm text-[var(--color-muted-foreground)]"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <span class="font-semibold text-[var(--color-card-foreground)]"
+                >Name</span
+              >
+              <span>{{ userDisplayName }}</span>
+            </div>
+            <div class="flex items-start justify-between gap-3">
+              <span class="font-semibold text-[var(--color-card-foreground)]"
+                >Email</span
+              >
+              <span class="text-right">{{ userEmail }}</span>
+            </div>
+          </div>
+          
+          <!-- Sign Out Button -->
+          <div class="mt-6 pt-6 border-t border-[var(--color-border)]">
+            <button
+              @click="handleSignOut"
+              type="button"
+              class="w-full inline-flex items-center justify-center gap-2 rounded-full border border-[color-mix(in_oklch,var(--color-destructive-500)_60%,transparent)] bg-[color-mix(in_oklch,var(--color-destructive-500)_12%,transparent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-destructive-500)] transition hover:bg-[color-mix(in_oklch,var(--color-destructive-500)_20%,transparent)]"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <path
+                  d="M9 6 5 6 5 18 9 18"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M13 12h8m0 0-3-3m3 3-3 3"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Sign Out
+            </button>
+          </div>
+        </div>
+
+        <!-- Biometric Authentication Section (Mobile Only) -->
+        <div
+          v-if="isMobile && isAuthenticated"
+          class="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-soft"
+        >
+          <header class="space-y-1.5">
+            <h2
+              class="text-xl font-semibold text-[var(--color-card-foreground)]"
+            >
+              Biometric Authentication
+            </h2>
+            <p
+              class="text-sm leading-relaxed text-[var(--color-muted-foreground)]"
+            >
+              Use fingerprint or face recognition to sign in quickly and securely.
+            </p>
+          </header>
+
+          <div class="mt-6 space-y-5">
+            <label
+              class="flex items-start gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/40 px-4 py-3 text-sm text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)] cursor-pointer"
+              :class="{ 'opacity-50 cursor-not-allowed': !biometricAvailable || isTogglingBiometric }"
+            >
+              <input
+                id="biometric-enabled"
+                type="checkbox"
+                :checked="biometricEnabled"
+                :disabled="!biometricAvailable || isTogglingBiometric"
+                @change="toggleBiometric"
+                class="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-brand-500)] focus:ring-[var(--color-brand-500)] disabled:cursor-not-allowed"
+              />
+              <div class="flex-1">
+                <p class="font-semibold">Enable biometric sign-in</p>
+                <p class="text-xs text-[var(--color-muted-foreground)] mt-1">
+                  {{ biometricAvailable
+                    ? 'Sign in faster using your device\'s biometric authentication'
+                    : 'Biometric authentication is only available on mobile devices'
+                  }}
+                </p>
+              </div>
+            </label>
+
+            <div
+              v-if="biometricEnabled"
+              class="rounded-2xl border border-[color-mix(in_oklch,var(--color-brand-500)_30%,transparent)] bg-[color-mix(in_oklch,var(--color-brand-500)_8%,transparent)] px-4 py-3"
+            >
+              <div class="flex items-start gap-2">
+                <svg class="w-5 h-5 text-[var(--color-brand-600)] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24">
+                  <path
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                <div class="text-sm">
+                  <p class="font-semibold text-[var(--color-brand-600)]">
+                    Biometric sign-in is active
+                  </p>
+                  <p class="text-xs text-[var(--color-brand-600)]/80 mt-1">
+                    You can now use fingerprint or face recognition on the sign-in screen.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div
           class="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-soft"
         >
@@ -353,10 +479,31 @@
 </template>
 
 <script setup>
-import { reactive, onMounted } from 'vue';
+import { reactive, onMounted, computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
 import { useAppStore } from '../stores/app';
+import { useAuthStore } from '../stores/authStore';
+import { usePlatform } from '../composables/usePlatform';
+import { useBiometricAuth } from '../composables/useBiometricAuth';
 
+const router = useRouter();
 const appStore = useAppStore();
+const authStore = useAuthStore();
+const { isMobile } = usePlatform();
+const {
+  isBiometricEnabled,
+  isBiometricAvailable,
+  enableBiometric,
+  disableBiometric
+} = useBiometricAuth();
+
+const { isAuthenticated, userName, user } = storeToRefs(authStore);
+
+// Biometric state
+const biometricEnabled = computed(() => isBiometricEnabled.value);
+const biometricAvailable = computed(() => isBiometricAvailable.value);
+const isTogglingBiometric = ref(false);
 
 const settings = reactive({
   maxImageSize: 10,
@@ -417,4 +564,111 @@ const clearAllData = () => {
     });
   }
 };
+
+const handleSignOut = async () => {
+  const result = await authStore.signOut();
+
+  if (result.success) {
+    appStore.addToast({
+      type: 'success',
+      title: 'Signed out',
+      message: 'Your session ended securely.',
+    });
+    
+    // Platform-aware navigation: mobile users go to /auth, desktop to home
+    if (isMobile.value) {
+      router.push('/auth');
+    } else {
+      router.push('/');
+    }
+  } else {
+    appStore.addToast({
+      type: 'error',
+      title: 'Sign out failed',
+      message: result.error,
+    });
+  }
+};
+
+// Computed for user display info
+const userEmail = computed(() => user.value?.email || 'Not available');
+const userDisplayName = computed(() => userName.value || 'User');
+
+// Biometric toggle handler
+const toggleBiometric = async (event) => {
+  const isChecked = event.target.checked;
+  isTogglingBiometric.value = true;
+
+  try {
+    if (isChecked) {
+      // Enable biometric
+      const result = await enableBiometric();
+      if (result.success) {
+        appStore.addToast({
+          type: 'success',
+          title: 'Biometric Enabled',
+          message: 'You can now use biometric authentication to sign in.',
+        });
+      } else {
+        // Revert checkbox if failed
+        event.target.checked = false;
+        appStore.addToast({
+          type: 'error',
+          title: 'Failed to Enable',
+          message: result.error || 'Could not enable biometric authentication.',
+        });
+      }
+    } else {
+      // Disable biometric
+      disableBiometric();
+      appStore.addToast({
+        type: 'success',
+        title: 'Biometric Disabled',
+        message: 'Biometric authentication has been disabled.',
+      });
+    }
+  } catch (error) {
+    console.error('Error toggling biometric:', error);
+    event.target.checked = !isChecked;
+    appStore.addToast({
+      type: 'error',
+      title: 'Error',
+      message: 'An error occurred while changing biometric settings.',
+    });
+  } finally {
+    isTogglingBiometric.value = false;
+  }
+};
 </script>
+
+<style scoped>
+/* Mobile-only title */
+.mobile-title {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mobile-title {
+    display: block;
+    text-align: center;
+    padding: 0.5rem 0;
+  }
+  
+  .mobile-title h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-card-foreground);
+    margin: 0;
+  }
+
+  /* Hide hero section on mobile */
+  .hero-section {
+    display: none;
+  }
+
+  /* Reduce spacing on mobile */
+  .flex.flex-col.gap-10 {
+    gap: 1.5rem;
+  }
+}
+</style>

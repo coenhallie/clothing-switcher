@@ -1,7 +1,8 @@
 <template>
   <div class="flex flex-col gap-10">
+    <!-- Hero Container - Hidden on Mobile -->
     <section
-      class="relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_85%,transparent)] px-8 py-10 shadow-soft"
+      class="hero-container relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_85%,transparent)] px-8 py-10 shadow-soft"
     >
       <div class="pointer-events-none absolute inset-0 z-0">
         <img
@@ -357,8 +358,10 @@
           </template>
         </button>
 
+        <!-- Desktop: Show unauthenticated CTA with modal trigger -->
+        <!-- Mobile: This block is hidden because unauthenticated mobile users are redirected to /auth -->
         <div
-          v-else
+          v-else-if="!isMobile"
           class="flex flex-col items-start gap-2 text-sm text-[var(--color-muted-foreground)]"
         >
           <p>
@@ -370,7 +373,7 @@
             @click="openAuthModalSignup"
             class="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)] hover:bg-[color-mix(in_oklch,var(--color-brand-500)_12%,transparent)]"
           >
-            Get started — it’s free
+            Get started — it's free
           </button>
         </div>
       </div>
@@ -448,6 +451,7 @@
         </div>
       </div>
     </section>
+
   </div>
 </template>
 
@@ -459,6 +463,7 @@ import { useAppStore } from '../stores/app';
 import { useAuthStore } from '../stores/authStore';
 import { useCreditStore } from '../stores/creditStore';
 import { useModals } from '../composables/useModals';
+import { usePlatform } from '../composables/usePlatform';
 import openRouterService from '../services/openRouterService';
 import geminiService from '../services/geminiService';
 import GalleryService from '../services/galleryService';
@@ -468,9 +473,14 @@ const appStore = useAppStore();
 const authStore = useAuthStore();
 const creditStore = useCreditStore();
 const { openAuthModal, openPurchaseModal } = useModals();
+const { isMobile } = usePlatform();
 
 const { isAuthenticated } = storeToRefs(authStore);
 const { canGenerate: hasCredits, credits } = storeToRefs(creditStore);
+
+// TODO: This view should never show for unauthenticated mobile users
+// Mobile users will be redirected to /auth by the router guard
+// This is enforced by the beforeEach guard in router/index.js
 
 const sourceImage = ref(null);
 const targetImage = ref(null);
@@ -698,5 +708,17 @@ const downloadResult = () => {
 </script>
 
 <style scoped>
-/* Add any component-specific styles here if needed */
+/* Hero container - hidden on mobile to improve initial viewport */
+@media (max-width: 767px) {
+  .hero-container {
+    display: none;
+  }
+}
+
+/* Mobile-optimized spacing */
+@media (max-width: 767px) {
+  .flex.flex-col.gap-10 {
+    gap: 1.5rem;
+  }
+}
 </style>
