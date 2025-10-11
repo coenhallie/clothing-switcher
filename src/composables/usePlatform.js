@@ -1,17 +1,17 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { BREAKPOINTS } from '../constants/index.js';
+import { createLogger } from '../utils/logger.js';
 
 /**
  * Composable for detecting the platform (desktop vs mobile) and viewport characteristics
  * Detects both Tauri platform detection and viewport dimensions for reliable layout switching
  */
 export function usePlatform() {
+  const logger = createLogger('Platform');
   const viewportWidth = ref(0);
   const viewportHeight = ref(0);
   const isTauriMobile = ref(false);
   const isTauriDesktop = ref(false);
-
-  // Breakpoint for mobile layout (following Material Design guidelines)
-  const MOBILE_BREAKPOINT = 768;
 
   /**
    * Check if running in Tauri environment
@@ -27,15 +27,15 @@ export function usePlatform() {
         isTauriMobile.value = platformType === 'android' || platformType === 'ios';
         isTauriDesktop.value = !isTauriMobile.value;
         
-        console.log('[Platform] Tauri platform detected:', platformType);
-        console.log('[Platform] Mobile:', isTauriMobile.value, 'Desktop:', isTauriDesktop.value);
+        logger.debug('Tauri platform detected:', platformType);
+        logger.debug('Mobile:', isTauriMobile.value, 'Desktop:', isTauriDesktop.value);
       } else {
         // Not in Tauri environment - assume desktop web
         isTauriDesktop.value = true;
-        console.log('[Platform] Running in web browser (not Tauri)');
+        logger.debug('Running in web browser (not Tauri)');
       }
     } catch (error) {
-      console.error('[Platform] Error detecting Tauri platform:', error);
+      logger.error('Error detecting Tauri platform:', error);
       // Fallback to desktop if detection fails
       isTauriDesktop.value = true;
     }
@@ -60,7 +60,7 @@ export function usePlatform() {
     }
     
     // Secondary: Fall back to viewport width for web or desktop Tauri
-    return viewportWidth.value > 0 && viewportWidth.value < MOBILE_BREAKPOINT;
+    return viewportWidth.value > 0 && viewportWidth.value < BREAKPOINTS.MOBILE;
   });
 
   /**

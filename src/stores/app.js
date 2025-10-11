@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
+import { TIMEOUTS, STORAGE_KEYS } from '../constants/index.js';
 
 export const useAppStore = defineStore('app', () => {
   // State
   const isLoading = ref(false);
   const loadingMessage = ref('');
   const toasts = ref([]);
-  const user = ref(null);
   const theme = ref('system');
   const resolvedTheme = ref('light');
 
@@ -20,7 +20,7 @@ export const useAppStore = defineStore('app', () => {
       type: toast.type || 'info',
       title: toast.title,
       message: toast.message || '',
-      duration: toast.duration || 5000,
+      duration: toast.duration || TIMEOUTS.TOAST_DEFAULT,
     };
 
     toasts.value.push(newToast);
@@ -74,13 +74,13 @@ export const useAppStore = defineStore('app', () => {
 
   const setTheme = (value) => {
     theme.value = value;
-    localStorage.setItem('app_theme', value);
+    localStorage.setItem(STORAGE_KEYS.THEME, value);
     applyTheme(value);
   };
 
   const loadTheme = () => {
     if (typeof window === 'undefined') return;
-    const stored = localStorage.getItem('app_theme');
+    const stored = localStorage.getItem(STORAGE_KEYS.THEME);
     if (stored) {
       theme.value = stored;
     }
@@ -105,14 +105,6 @@ export const useAppStore = defineStore('app', () => {
     }
   };
 
-  // User management
-  const setUser = (userData) => {
-    user.value = userData;
-  };
-
-  // Computed
-  const isAuthenticated = computed(() => !!user.value);
-
   // Initialize store
   const initialize = () => {
     loadTheme();
@@ -123,12 +115,8 @@ export const useAppStore = defineStore('app', () => {
     isLoading,
     loadingMessage,
     toasts,
-    user,
     theme,
     resolvedTheme,
-
-    // Getters
-    isAuthenticated,
 
     // Actions
     addToast,
@@ -138,7 +126,6 @@ export const useAppStore = defineStore('app', () => {
     setTheme,
     loadTheme,
     teardownThemeWatcher,
-    setUser,
     initialize,
   };
 });

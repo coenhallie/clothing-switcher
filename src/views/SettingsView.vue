@@ -178,6 +178,25 @@
           </header>
 
           <div class="mt-6 space-y-5">
+            <!-- Storage Location Toggle (Mobile Only) -->
+            <label
+              v-if="isTauriMobile"
+              class="flex items-start gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/40 px-4 py-3 text-sm text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)]"
+            >
+              <input
+                id="use-local-storage"
+                v-model="settings.useLocalStorage"
+                type="checkbox"
+                class="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-brand-500)] focus:ring-[var(--color-brand-500)]"
+              />
+              <div>
+                <p class="font-semibold">Use local device storage</p>
+                <p class="text-xs text-[var(--color-muted-foreground)]">
+                  Save generated images directly on your device for offline access and privacy. When disabled, images are stored in the cloud (requires internet).
+                </p>
+              </div>
+            </label>
+
             <label
               class="flex items-start gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/40 px-4 py-3 text-sm text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)]"
             >
@@ -490,7 +509,7 @@ import { useBiometricAuth } from '../composables/useBiometricAuth';
 const router = useRouter();
 const appStore = useAppStore();
 const authStore = useAuthStore();
-const { isMobile } = usePlatform();
+const { isMobile, isTauriMobile } = usePlatform();
 const {
   isBiometricEnabled,
   isBiometricAvailable,
@@ -511,6 +530,7 @@ const settings = reactive({
   autoResize: true,
   saveHistory: true,
   autoDeleteDays: 30,
+  useLocalStorage: true, // Default to local storage on mobile
 });
 
 onMounted(() => {

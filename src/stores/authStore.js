@@ -4,6 +4,10 @@ import authService from '../services/authService.js';
 import { supabase } from '../services/supabaseClient.js';
 import router from '../router/index.js';
 import { detectPlatformSync } from '../utils/platformDetection.js';
+import { STORAGE_KEYS } from '../constants/index.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('AuthStore');
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -72,8 +76,8 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   const signIn = async (email, password) => {
-    console.log('🏪 [AuthStore] signIn called with email:', email);
-    console.log('🏪 [AuthStore] Current auth state before sign in:', {
+    logger.debug('signIn called with email:', email);
+    logger.debug('Current auth state before sign in:', {
       hasUser: !!user.value,
       hasProfile: !!profile.value,
       isLoading: isLoading.value,
@@ -83,7 +87,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Check if we have a valid existing session first
     const validSession = await validateExistingSession();
     if (validSession) {
-      console.log('🏪 [AuthStore] Valid session found, using existing session');
+      logger.debug('Valid session found, using existing session');
       return {
         success: true,
         user: validSession.user,
@@ -95,10 +99,10 @@ export const useAuthStore = defineStore('auth', () => {
     clearError();
 
     try {
-      console.log('🏪 [AuthStore] Calling authService.signIn...');
+      logger.debug('Calling authService.signIn...');
       const result = await authService.signIn(email, password);
 
-      console.log('🏪 [AuthStore] AuthService signIn result:', {
+      logger.debug('AuthService signIn result:', {
         success: result.success,
         hasUser: !!result.user,
         hasProfile: !!result.profile,
@@ -108,15 +112,15 @@ export const useAuthStore = defineStore('auth', () => {
       });
 
       if (result.success) {
-        console.log('🏪 [AuthStore] Setting user and profile in store');
+        logger.debug('Setting user and profile in store');
         setUser(result.user);
         setProfile(result.profile);
         
         // Clear logout flag on successful authentication
         clearLogoutFlag();
-        console.log('✅ [AuthStore] Logout flag cleared on successful sign in');
+        logger.debug('Logout flag cleared on successful sign in');
 
-        console.log('🏪 [AuthStore] Auth state after successful sign in:', {
+        logger.debug('Auth state after successful sign in:', {
           hasUser: !!user.value,
           hasProfile: !!profile.value,
           userEmail: user.value?.email,
@@ -129,10 +133,7 @@ export const useAuthStore = defineStore('auth', () => {
           profile: result.profile,
         };
       } else {
-        console.log(
-          '🏪 [AuthStore] Sign in failed, setting error:',
-          result.error
-        );
+        logger.warn('Sign in failed, setting error:', result.error);
 
         // If sign in fails due to session issues, try cleanup and retry once
         if (
@@ -151,19 +152,17 @@ export const useAuthStore = defineStore('auth', () => {
           setProfile(null);
 
           // Retry sign in once after cleanup
-          console.log('🏪 [AuthStore] Retrying sign in after cleanup...');
+          logger.debug('Retrying sign in after cleanup...');
           const retryResult = await authService.signIn(email, password);
 
           if (retryResult.success) {
-            console.log(
-              '🏪 [AuthStore] Retry successful, setting user and profile'
-            );
+            logger.debug('Retry successful, setting user and profile');
             setUser(retryResult.user);
             setProfile(retryResult.user);
             
             // Clear logout flag on successful retry
             clearLogoutFlag();
-            console.log('✅ [AuthStore] Logout flag cleared on retry success');
+            logger.debug('Logout flag cleared on retry success');
             
             return {
               success: true,
@@ -171,7 +170,7 @@ export const useAuthStore = defineStore('auth', () => {
               profile: retryResult.user,
             };
           } else {
-            console.log('🏪 [AuthStore] Retry also failed:', retryResult.error);
+            logger.warn('Retry also failed:', retryResult.error);
             setError(retryResult.error);
             return {
               success: false,
@@ -188,14 +187,14 @@ export const useAuthStore = defineStore('auth', () => {
       }
     } catch (err) {
       const errorMessage = err.message || 'Sign in failed';
-      console.error('🏪 [AuthStore] Sign in exception:', err);
+      logger.error('Sign in exception:', err);
       setError(errorMessage);
       return {
         success: false,
         error: errorMessage,
       };
     } finally {
-      console.log('🏪 [AuthStore] Setting loading to false');
+      logger.debug('Setting loading to false');
       setLoading(false);
     }
   };
@@ -243,8 +242,8 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   const loadCurrentUser = async () => {
-    console.log('🔍 [AuthStore] loadCurrentUser called');
-    console.log('🔍 [AuthStore] Current state before loading:', {
+    logger.debug('loadCurrentUser called');
+    logger.debug('Current state before loading:', {
       hasUser: !!user.value,
       hasProfile: !!profile.value,
       hasError: !!error.value,
@@ -254,27 +253,24 @@ export const useAuthStore = defineStore('auth', () => {
     const supabaseKeys = Object.keys(localStorage).filter(
       (key) => key.includes('supabase') || key.startsWith('sb-')
     );
-    console.log(
-      '🔍 [AuthStore] Supabase localStorage keys before load:',
-      supabaseKeys
-    );
+    logger.debug('Supabase localStorage keys before load:', supabaseKeys);
 
     clearError();
 
     try {
       // First check if there's a valid session in Supabase
-      console.log('🔍 [AuthStore] Checking for existing Supabase session...');
+      logger.debug('Checking for existing Supabase session...');
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
 
       if (sessionError) {
-        console.warn('🔍 [AuthStore] Session check error:', sessionError);
+        logger.warn('Session check error:', sessionError);
       }
 
       if (session && session.user) {
-        console.log('🔍 [AuthStore] Found valid session in Supabase:', {
+        logger.debug('Found valid session in Supabase:', {
           userEmail: session.user.email,
           expiresAt: new Date(session.expires_at * 1000).toISOString(),
         });
@@ -287,13 +283,10 @@ export const useAuthStore = defineStore('auth', () => {
         try {
           await authService.initializeUserCredits(session.user);
         } catch (creditsError) {
-          console.warn(
-            '🔍 [AuthStore] Failed to initialize credits:',
-            creditsError
-          );
+          logger.warn('Failed to initialize credits:', creditsError);
         }
 
-        console.log('🔍 [AuthStore] State after session restore:', {
+        logger.debug('State after session restore:', {
           hasUser: !!user.value,
           hasProfile: !!profile.value,
           userEmail: user.value?.email,
@@ -308,12 +301,10 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       // If no session found, try the auth service method
-      console.log(
-        '🔍 [AuthStore] No session found, calling authService.getCurrentUser...'
-      );
+      logger.debug('No session found, calling authService.getCurrentUser...');
       const result = await authService.getCurrentUser();
 
-      console.log('🔍 [AuthStore] AuthService getCurrentUser result:', {
+      logger.debug('AuthService getCurrentUser result:', {
         success: result.success,
         hasUser: !!result.user,
         hasProfile: !!result.profile,
@@ -322,13 +313,11 @@ export const useAuthStore = defineStore('auth', () => {
       });
 
       if (result.success) {
-        console.log(
-          '🔍 [AuthStore] Setting user and profile from getCurrentUser'
-        );
+        logger.debug('Setting user and profile from getCurrentUser');
         setUser(result.user);
         setProfile(result.profile || result.user);
 
-        console.log('🔍 [AuthStore] State after successful load:', {
+        logger.debug('State after successful load:', {
           hasUser: !!user.value,
           hasProfile: !!profile.value,
           userEmail: user.value?.email,
@@ -341,16 +330,14 @@ export const useAuthStore = defineStore('auth', () => {
           profile: result.profile || result.user,
         };
       } else {
-        console.log(
-          '🔍 [AuthStore] getCurrentUser failed, clearing user state'
-        );
+        logger.debug('getCurrentUser failed, clearing user state');
         // Clear user state if session is invalid
         setUser(null);
         setProfile(null);
 
         // Don't set error for missing sessions - that's normal
         if (result.error !== 'No authenticated user') {
-          console.warn('🔍 [AuthStore] Session loading failed:', result.error);
+          logger.warn('Session loading failed:', result.error);
           // Only set error for unexpected failures
           if (
             !result.error.includes('expired') &&
@@ -367,7 +354,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
     } catch (err) {
       const errorMessage = err.message || 'Failed to load user';
-      console.error('🔍 [AuthStore] Load current user error:', err);
+      logger.error('Load current user error:', err);
 
       // Clear user state on error
       setUser(null);
@@ -496,7 +483,7 @@ export const useAuthStore = defineStore('auth', () => {
       setUser(user);
       return user;
     } catch (err) {
-      console.error('Failed to refresh profile:', err);
+      logger.error('Failed to refresh profile:', err);
       return null;
     }
   };
@@ -504,20 +491,14 @@ export const useAuthStore = defineStore('auth', () => {
   // Initialize auth state listener
   const initializeAuth = () => {
     return authService.onAuthStateChange(async (event, session) => {
-      console.log(
-        '🔄 [AuthStore] Auth state change:',
-        event,
-        session ? 'session exists' : 'no session'
-      );
+      logger.debug('Auth state change:', event, session ? 'session exists' : 'no session');
 
       if (event === 'SIGNED_IN') {
-        console.log(
-          '🔄 [AuthStore] Processing SIGNED_IN - updating store state'
-        );
+        logger.debug('Processing SIGNED_IN - updating store state');
         setUser(session?.user || null);
         setProfile(session?.user || null);
         clearError(); // Clear any previous errors on successful sign in
-        console.log('🔄 [AuthStore] Store state updated:', {
+        logger.debug('Store state updated:', {
           hasUser: !!session?.user,
           hasProfile: !!session?.user,
           userEmail: session?.user?.email,
@@ -526,16 +507,16 @@ export const useAuthStore = defineStore('auth', () => {
 
         // Load credits when user signs in
         if (session?.user) {
-          console.log('💰 [AuthStore] Loading credits for signed in user...');
+          logger.debug('Loading credits for signed in user...');
           try {
             // Import creditStore dynamically to avoid circular dependency
             const { useCreditStore } = await import('./creditStore.js');
             const creditStore = useCreditStore();
             await creditStore.loadCredits();
             creditStore.initializeSubscriptions();
-            console.log('💰 [AuthStore] Credits loaded successfully');
+            logger.debug('Credits loaded successfully');
           } catch (error) {
-            console.error('💰 [AuthStore] Failed to load credits:', error);
+            logger.error('Failed to load credits:', error);
           }
         }
 
@@ -545,21 +526,19 @@ export const useAuthStore = defineStore('auth', () => {
         if (isMobile) {
           // Mobile: always redirect to query param or home after sign in
           const redirectPath = router.currentRoute.value.query.redirect || '/';
-          console.log('🔄 [AuthStore] Mobile sign in - redirecting to:', redirectPath);
+          logger.debug('Mobile sign in - redirecting to:', redirectPath);
           router.push(redirectPath);
         } else {
           // Desktop: check sessionStorage for post-auth redirect
-          const postAuthRedirect = sessionStorage.getItem('postAuthRedirect');
+          const postAuthRedirect = sessionStorage.getItem(STORAGE_KEYS.AUTH_REDIRECT);
           if (postAuthRedirect) {
-            console.log('🔄 [AuthStore] Desktop sign in - redirecting to:', postAuthRedirect);
-            sessionStorage.removeItem('postAuthRedirect');
+            logger.debug('Desktop sign in - redirecting to:', postAuthRedirect);
+            sessionStorage.removeItem(STORAGE_KEYS.AUTH_REDIRECT);
             router.push(postAuthRedirect);
           }
         }
       } else if (event === 'SIGNED_OUT') {
-        console.log(
-          '🔄 [AuthStore] Processing SIGNED_OUT - clearing store state'
-        );
+        logger.debug('Processing SIGNED_OUT - clearing store state');
         setUser(null);
         setProfile(null);
         clearError(); // Clear errors on sign out
@@ -569,25 +548,23 @@ export const useAuthStore = defineStore('auth', () => {
           const { useCreditStore } = await import('./creditStore.js');
           const creditStore = useCreditStore();
           creditStore.reset();
-          console.log('💰 [AuthStore] Credits reset on sign out');
+          logger.debug('Credits reset on sign out');
         } catch (error) {
-          console.error('💰 [AuthStore] Failed to reset credits:', error);
+          logger.error('Failed to reset credits:', error);
         }
 
         // Platform-aware navigation after sign out
         const { isMobile } = detectPlatformSync();
         
         const targetPath = isMobile ? '/auth' : '/';
-        console.log('🔄 [AuthStore] Sign out - redirecting to:', targetPath);
+        logger.debug('Sign out - redirecting to:', targetPath);
         router.push(targetPath);
       } else if (event === 'TOKEN_REFRESHED') {
-        console.log(
-          '🔄 [AuthStore] Processing TOKEN_REFRESHED - updating user'
-        );
+        logger.debug('Processing TOKEN_REFRESHED - updating user');
         // Update user data on token refresh
         setUser(session?.user || null);
         setProfile(session?.user || null);
-        console.log('Token refreshed successfully');
+        logger.debug('Token refreshed successfully');
         
         // TODO: Implement enhanced token refresh handling per docs/supabase-auth-configuration.md
         // - Add retry logic for failed token refreshes
@@ -605,7 +582,7 @@ export const useAuthStore = defineStore('auth', () => {
       setProfile(null);
       return { success: true };
     } catch (error) {
-      console.error('Failed to clear session:', error);
+      logger.error('Failed to clear session:', error);
       return { success: false, error: error.message };
     }
   };
@@ -617,14 +594,14 @@ export const useAuthStore = defineStore('auth', () => {
         data: { session },
       } = await supabase.auth.getSession();
       if (session && session.expires_at > Date.now() / 1000) {
-        console.log('🏪 [AuthStore] Valid existing session found');
+        logger.debug('Valid existing session found');
         setUser(session.user);
         setProfile(session.user);
         return session;
       }
       return null;
     } catch (error) {
-      console.warn('🏪 [AuthStore] Session validation failed:', error);
+      logger.warn('Session validation failed:', error);
       return null;
     }
   };
@@ -635,13 +612,13 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const clearAllAuthData = async () => {
     try {
-      console.log('🧹 [AuthStore] Clearing all authentication data...');
+      logger.info('Clearing all authentication data...');
 
       // 1. Sign out from Supabase to invalidate session on server
       try {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (error) {
-        console.warn('⚠️ [AuthStore] Supabase signOut error (continuing cleanup):', error);
+        logger.warn('Supabase signOut error (continuing cleanup):', error);
       }
 
       // 2. Clear all localStorage items (including Supabase session tokens)
@@ -657,7 +634,7 @@ export const useAuthStore = defineStore('auth', () => {
         try {
           localStorage.removeItem(key);
         } catch (error) {
-          console.warn(`⚠️ [AuthStore] Failed to remove localStorage key ${key}:`, error);
+          logger.warn(`Failed to remove localStorage key ${key}:`, error);
         }
       });
 
@@ -665,7 +642,7 @@ export const useAuthStore = defineStore('auth', () => {
       try {
         sessionStorage.clear();
       } catch (error) {
-        console.warn('⚠️ [AuthStore] Failed to clear sessionStorage:', error);
+        logger.warn('Failed to clear sessionStorage:', error);
       }
 
       // 4. Clear any cookies (if browser allows)
@@ -687,16 +664,16 @@ export const useAuthStore = defineStore('auth', () => {
 
       // 6. Mark that logout occurred (for startup check)
       try {
-        localStorage.setItem('logout_on_close_flag', 'true');
-        localStorage.setItem('last_logout_timestamp', Date.now().toString());
+        localStorage.setItem(STORAGE_KEYS.LOGOUT_FLAG, 'true');
+        localStorage.setItem(STORAGE_KEYS.LOGOUT_TIMESTAMP, Date.now().toString());
       } catch (error) {
-        console.warn('⚠️ [AuthStore] Failed to set logout flag:', error);
+        logger.warn('Failed to set logout flag:', error);
       }
 
-      console.log('✅ [AuthStore] All authentication data cleared successfully');
+      logger.info('All authentication data cleared successfully');
       return { success: true, message: 'All authentication data cleared' };
     } catch (error) {
-      console.error('❌ [AuthStore] Failed to clear all auth data:', error);
+      logger.error('Failed to clear all auth data:', error);
       return { success: false, error: error.message };
     }
   };
@@ -706,15 +683,15 @@ export const useAuthStore = defineStore('auth', () => {
    * Ensures thorough cleanup without navigation
    */
   const logoutOnClose = async () => {
-    console.log('🚪 [AuthStore] Executing logout-on-close...');
+    logger.info('Executing logout-on-close...');
     
     // Clear all auth data
     const result = await clearAllAuthData();
     
     if (result.success) {
-      console.log('✅ [AuthStore] Logout-on-close completed successfully');
+      logger.info('Logout-on-close completed successfully');
     } else {
-      console.error('❌ [AuthStore] Logout-on-close failed:', result.error);
+      logger.error('Logout-on-close failed:', result.error);
     }
     
     return result;
@@ -726,10 +703,10 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const shouldRequireAuth = () => {
     try {
-      const logoutFlag = localStorage.getItem('logout_on_close_flag');
+      const logoutFlag = localStorage.getItem(STORAGE_KEYS.LOGOUT_FLAG);
       return logoutFlag === 'true';
     } catch (error) {
-      console.warn('⚠️ [AuthStore] Failed to check logout flag:', error);
+      logger.warn('Failed to check logout flag:', error);
       return false;
     }
   };
@@ -739,10 +716,10 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const clearLogoutFlag = () => {
     try {
-      localStorage.removeItem('logout_on_close_flag');
-      localStorage.removeItem('last_logout_timestamp');
+      localStorage.removeItem(STORAGE_KEYS.LOGOUT_FLAG);
+      localStorage.removeItem(STORAGE_KEYS.LOGOUT_TIMESTAMP);
     } catch (error) {
-      console.warn('⚠️ [AuthStore] Failed to clear logout flag:', error);
+      logger.warn('Failed to clear logout flag:', error);
     }
   };
 

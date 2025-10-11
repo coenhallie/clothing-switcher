@@ -473,7 +473,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRoute } from 'vue-router';
 import { useAppStore } from './stores/app';
@@ -482,24 +482,42 @@ import { useCreditStore } from './stores/creditStore';
 import { useModals } from './composables/useModals';
 import { usePlatform } from './composables/usePlatform';
 import { useAppLifecycle } from './composables/useAppLifecycle';
+import { useUserMenu } from './composables/useUserMenu';
+import { useOverscrollPrevention } from './composables/useOverscrollPrevention';
 import AuthModal from './components/auth/AuthModal.vue';
 import PurchaseCredits from './components/credits/PurchaseCredits.vue';
 import ProfileBottomSheet from './components/ProfileBottomSheet.vue';
 import DesktopLayout from './components/layouts/DesktopLayout.vue';
 import MobileLayout from './components/layouts/MobileLayout.vue';
+import { TIMEOUTS, Z_INDEX } from './constants/index.js';
+import { createLogger } from './utils/logger.js';
 
 const route = useRoute();
+const logger = createLogger('App');
 
 const appStore = useAppStore();
 const authStore = useAuthStore();
 const creditStore = useCreditStore();
 
 const { toasts, theme, resolvedTheme } = storeToRefs(appStore);
-const { isAuthenticated, userName } = storeToRefs(authStore);
-const { credits } = storeToRefs(creditStore);
 const { isMobile, isDesktop } = usePlatform();
 
 const { removeToast, addToast, setTheme, teardownThemeWatcher } = appStore;
+
+// Use composables for user menu and overscroll prevention
+const {
+  showUserMenu,
+  userMenuRef,
+  isAuthenticated,
+  userName,
+  credits,
+  avatarInitials,
+  toggleUserMenu,
+  closeUserMenu,
+  handleClickOutside,
+} = useUserMenu();
+
+useOverscrollPrevention();
 
 // Dynamically select layout component based on platform
 const currentLayout = computed(() => {
@@ -521,8 +539,6 @@ const {
   openPurchaseModal,
   closePurchaseModal,
 } = useModals();
-const showUserMenu = ref(false);
-const userMenuRef = ref(null);
 
 // Initialize app lifecycle management
 const { initialize: initializeLifecycle, cleanup: cleanupLifecycle } = useAppLifecycle();
@@ -532,14 +548,6 @@ let authUnsubscribe = null;
 const openPurchaseCredits = () => {
   openPurchaseModal();
   closeUserMenu();
-};
-
-const toggleUserMenu = () => {
-  showUserMenu.value = !showUserMenu.value;
-};
-
-const closeUserMenu = () => {
-  showUserMenu.value = false;
 };
 
 const handleAuthSuccess = async () => {
@@ -607,12 +615,6 @@ const handlePurchaseCompleted = (result) => {
   creditStore.loadCredits();
 };
 
-const handleClickOutside = (event) => {
-  if (userMenuRef.value && !userMenuRef.value.contains(event.target)) {
-    closeUserMenu();
-  }
-};
-
 const handleOpenAuthModal = (event) => {
   // Suppress modal if on mobile auth screen
   if (isOnMobileAuthScreen.value) {
@@ -639,16 +641,6 @@ const cycleTheme = () => {
   setTheme(next);
 };
 
-const avatarInitials = computed(() => {
-  if (!userName.value) return 'SF';
-  return userName.value
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-});
-
 const toastVariantClasses = (type) => {
   switch (type) {
     case 'success':
@@ -662,157 +654,26 @@ const toastVariantClasses = (type) => {
   }
 };
 
-// Lightweight overscroll prevention - only at boundaries
-const preventOverscroll = () => {
-  if (typeof window === 'undefined') {
-    return () => {};
-  }
-
-  const MOVEMENT_THRESHOLD = 8;
-  let startY = 0;
-  let lastY = 0;
-  let pullDownActive = false;
-  let activeScrollContainer = null;
-  let initialScrollTop = 0;
-
-  const findScrollableContainer = (node) => {
-    let current = node;
-    const docScroll = document.scrollingElement || document.documentElement;
-
-    while (current && current !== document.body) {
-      const style = window.getComputedStyle(current);
-      const overflowY = style.overflowY;
-      const canScroll =
-        (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') &&
-        current.scrollHeight > current.clientHeight;
-
-      if (canScroll) {
-        return current;
-      }
-      current = current.parentElement;
-    }
-
-    return docScroll;
-  };
-
-  const resetPullState = () => {
-    pullDownActive = false;
-    startY = 0;
-    lastY = 0;
-    activeScrollContainer = null;
-    initialScrollTop = 0;
-  };
-
-  const handleTouchStart = (e) => {
-    if (!isMobile.value || e.touches.length !== 1) return;
-
-    const touchY = e.touches[0].clientY;
-    startY = touchY;
-    lastY = touchY;
-    pullDownActive = false;
-    activeScrollContainer = findScrollableContainer(e.target);
-    initialScrollTop = activeScrollContainer?.scrollTop ?? 0;
-  };
-
-  const handleTouchMove = (e) => {
-    if (!isMobile.value || e.touches.length !== 1) return;
-
-    const target = e.target;
-    if (
-      target.closest('button') ||
-      target.closest('a') ||
-      target.closest('input, textarea, select') ||
-      target.closest('[data-allow-overscroll]')
-    ) {
-      return;
-    }
-
-    const currentY = e.touches[0].clientY;
-    const deltaFromStart = currentY - startY;
-    const deltaFromLast = currentY - lastY;
-    lastY = currentY;
-
-    const scrollContainer = activeScrollContainer ?? findScrollableContainer(target);
-    const scrollTop = scrollContainer?.scrollTop ?? 0;
-    const isAtTop = scrollTop <= 0;
-    const movedDownEnough = deltaFromStart > MOVEMENT_THRESHOLD;
-    const movedUpEnough = deltaFromStart < -MOVEMENT_THRESHOLD;
-
-    if (!pullDownActive) {
-      if (isAtTop && movedDownEnough && initialScrollTop <= 0) {
-        pullDownActive = true;
-      } else if (movedUpEnough) {
-        pullDownActive = false;
-      }
-    }
-
-    if (pullDownActive) {
-      if (deltaFromLast < -MOVEMENT_THRESHOLD) {
-        pullDownActive = false;
-        return;
-      }
-
-      if (isAtTop && deltaFromStart >= 0) {
-        e.preventDefault();
-      } else if (!isAtTop) {
-        pullDownActive = false;
-      }
-    }
-  };
-
-  const handleTouchEnd = () => {
-    resetPullState();
-  };
-
-  const handleTouchCancel = () => {
-    resetPullState();
-  };
-
-  if (isMobile.value) {
-    document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd, { passive: true });
-    document.addEventListener('touchcancel', handleTouchCancel, { passive: true });
-  }
-
-  return () => {
-    document.removeEventListener('touchstart', handleTouchStart);
-    document.removeEventListener('touchmove', handleTouchMove);
-    document.removeEventListener('touchend', handleTouchEnd);
-    document.removeEventListener('touchcancel', handleTouchCancel);
-  };
-};
-
-let cleanupOverscroll = null;
-
 onMounted(async () => {
-  // Prevent overscroll on mobile
-  await nextTick();
-  cleanupOverscroll = preventOverscroll();
-  
   // Add troubleshooting function to window for easy access
   if (typeof window !== 'undefined') {
     window.clearAuthData = async () => {
-      console.log('Clearing all authentication data...');
+      logger.info('Clearing all authentication data...');
       const result = await authStore.clearAllAuthData();
       if (result.success) {
-        console.log(
-          '✅ Authentication data cleared successfully. Please refresh the page.'
-        );
+        logger.info('Authentication data cleared successfully. Please refresh the page.');
         window.location.reload();
       } else {
-        console.error('❌ Failed to clear auth data:', result.error);
+        logger.error('Failed to clear auth data:', result.error);
       }
       return result;
     };
-    console.log(
-      '💡 Troubleshooting: Run window.clearAuthData() in console to clear all auth data'
-    );
+    logger.debug('Troubleshooting: Run window.clearAuthData() in console to clear all auth data');
   }
 
   try {
-    console.log('🚀 [App] Initializing application...');
-    console.log('🚀 [App] Initial localStorage state:', {
+    logger.info('Initializing application...');
+    logger.debug('Initial localStorage state:', {
       totalKeys: Object.keys(localStorage).length,
       supabaseKeys: Object.keys(localStorage).filter(
         (key) => key.includes('supabase') || key.startsWith('sb-')
@@ -821,30 +682,30 @@ onMounted(async () => {
     });
 
     // Initialize app store first
-    console.log('🚀 [App] Initializing app store...');
+    logger.debug('Initializing app store...');
     appStore.initialize();
 
     // Check if logout is required (app was closed with authenticated user)
-    console.log('🔒 [App] Checking for logout-on-close flag...');
+    logger.debug('Checking for logout-on-close flag...');
     const logoutRequired = authStore.shouldRequireAuth();
     
     if (logoutRequired) {
-      console.log('🔒 [App] Logout flag detected - enforcing re-authentication');
+      logger.info('Logout flag detected - enforcing re-authentication');
       
       // Ensure all auth data is cleared
       await authStore.clearAllAuthData()
       
-      console.log('✅ [App] Auth data cleared - user must re-authenticate');
+      logger.info('Auth data cleared - user must re-authenticate');
     } else {
-      console.log('✅ [App] No logout flag - proceeding with normal session restoration');
+      logger.debug('No logout flag - proceeding with normal session restoration');
     }
 
     // Early session restoration to support router guard logic
     // This will only succeed if user re-authenticates or no logout was required
-    console.log('🔐 [App] Attempting to restore existing session...');
+    logger.debug('Attempting to restore existing session...');
     const sessionRestoreResult = await authStore.loadCurrentUser();
 
-    console.log('🔐 [App] Session restore result:', {
+    logger.debug('Session restore result:', {
       success: sessionRestoreResult.success,
       hasUser: !!sessionRestoreResult.user,
       userEmail: sessionRestoreResult.user?.email,
@@ -853,13 +714,13 @@ onMounted(async () => {
     });
 
     // Initialize auth state listener after attempting session restore
-    console.log('🚀 [App] Initializing auth state listener...');
+    logger.debug('Initializing auth state listener...');
     authUnsubscribe = authStore.initializeAuth();
 
     // Wait a brief moment for any auth state changes to settle
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, TIMEOUTS.SESSION_CHECK_DELAY));
 
-    console.log('🔐 [App] Auth state after initialization:', {
+    logger.debug('Auth state after initialization:', {
       isAuthenticated: authStore.isAuthenticated,
       hasUser: !!authStore.user,
       hasProfile: !!authStore.profile,
@@ -867,47 +728,47 @@ onMounted(async () => {
     });
 
     if (authStore.isAuthenticated && authStore.user) {
-      console.log('✅ [App] User session detected:', {
+      logger.info('User session detected:', {
         userEmail: authStore.user.email,
       });
 
       // Load credits if user is authenticated
       try {
-        console.log('💰 [App] Loading credits for authenticated user...');
+        logger.debug('Loading credits for authenticated user...');
         await Promise.race([
           creditStore.loadCredits(),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Credits timeout')), 10000)
+            setTimeout(() => reject(new Error('Credits timeout')), TIMEOUTS.CREDITS_TIMEOUT)
           ),
         ]);
         await creditStore.initializeSubscriptions();
-        console.log('💰 [App] Credits loaded successfully');
+        logger.debug('Credits loaded successfully');
       } catch (error) {
-        console.error('💰 [App] Failed to load credits:', error);
+        logger.error('Failed to load credits:', error);
         // Don't block initialization for credit loading failures
       }
     } else {
-      console.log('ℹ️ [App] No active session detected');
+      logger.debug('No active session detected');
     }
 
     // Initialize app lifecycle (handles logout on close and auto-login on startup)
     // Must be called AFTER session restoration to avoid duplicate session loading
-    console.log('🔄 [App] Initializing app lifecycle management...');
+    logger.debug('Initializing app lifecycle management...');
     await initializeLifecycle();
 
     // Set up event listeners
-    console.log('🚀 [App] Setting up event listeners...');
+    logger.debug('Setting up event listeners...');
     document.addEventListener('click', handleClickOutside);
 
-    console.log('✅ [App] Application initialized successfully');
-    console.log('✅ [App] Final auth state:', {
+    logger.info('Application initialized successfully');
+    logger.debug('Final auth state:', {
       isAuthenticated: authStore.isAuthenticated,
       hasUser: !!authStore.user,
       hasProfile: !!authStore.profile,
       userEmail: authStore.user?.email,
     });
   } catch (error) {
-    console.error('❌ Failed to initialize app:', error);
+    logger.error('Failed to initialize app:', error);
 
     // Show user-friendly error message
     addToast({
@@ -916,7 +777,7 @@ onMounted(async () => {
       message: 'There was a problem starting the app. Please refresh the page.',
     });
   } finally {
-    console.log('🏁 Initialization complete');
+    logger.debug('Initialization complete');
   }
 });
 
@@ -927,11 +788,6 @@ onUnmounted(() => {
   creditStore.unsubscribeFromChanges();
   document.removeEventListener('click', handleClickOutside);
   teardownThemeWatcher();
-  
-  // Cleanup overscroll prevention
-  if (cleanupOverscroll) {
-    cleanupOverscroll();
-  }
   
   // Cleanup app lifecycle listeners
   cleanupLifecycle();
@@ -955,28 +811,42 @@ onUnmounted(() => {
 
 <style>
 /*
- * CRITICAL: Native app-style scroll containment
+ * CRITICAL: Native app-style scroll containment (MOBILE ONLY)
  * Based on how Telegram Web, Discord, and other native-feeling apps work
+ * Desktop uses normal document scrolling
  */
-#app {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  
-  /* Prevent ANY overscroll at the app level */
-  overscroll-behavior: none;
-  -webkit-overscroll-behavior: none;
-  
-  /* Hardware acceleration */
-  transform: translate3d(0, 0, 0);
-  -webkit-transform: translate3d(0, 0, 0);
+
+/* Mobile-only: Fixed app container for mobile layouts with internal scroll containers */
+@media (max-width: 767px) {
+  #app {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    
+    /* Prevent ANY overscroll at the app level */
+    overscroll-behavior: none;
+    -webkit-overscroll-behavior: none;
+    
+    /* Hardware acceleration */
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+  }
+
+  /* Ensure body doesn't interfere with fixed layout on mobile */
+  body {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
 }
 
-/* Ensure body doesn't interfere with fixed layout */
-body {
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
-  height: 100%;
+/* Desktop: Allow normal scrolling */
+@media (min-width: 768px) {
+  #app {
+    /* Prevent overscroll bounce on desktop */
+    overscroll-behavior: none;
+    -webkit-overscroll-behavior: none;
+  }
 }
 </style>

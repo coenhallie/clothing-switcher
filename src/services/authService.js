@@ -164,13 +164,13 @@ class AuthService {
       const plugins = await getPlugins();
       plugins.triggerHaptic('notification', 'success');
       
-      // Show credit count in notification body
-      const notificationBody = creditCount > 0
-        ? `You have ${creditCount} credit${creditCount !== 1 ? 's' : ''} left!`
-        : 'You have successfully signed in';
+      // Put credit count in title since body may not be visible on mobile
+      const notificationTitle = creditCount > 0
+        ? `Welcome back! ${creditCount} credit${creditCount !== 1 ? 's' : ''} left`
+        : 'Welcome back!';
       
-      console.log('[AuthService] Notification details - Title: "Welcome back!", Body:', notificationBody);
-      await plugins.showNotification('Welcome back!', notificationBody);
+      console.log('[AuthService] Notification details - Title:', notificationTitle, 'Credits:', creditCount);
+      await plugins.showNotification(notificationTitle, 'Ready to transform your wardrobe');
       console.log('[AuthService] Notification sent');
 
       return {

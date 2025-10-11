@@ -110,9 +110,13 @@
     
     /* Disable momentum scrolling on navigation elements */
     -webkit-overflow-scrolling: auto;
-    
-    /* Prevent pull-to-refresh on mobile */
-    touch-action: pan-y;
+  }
+  
+  /* Mobile-only: Prevent pull-to-refresh */
+  @media (max-width: 767px) {
+    html {
+      touch-action: pan-y;
+    }
   }
 
   /* Consistent box model */
@@ -145,15 +149,19 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     
-    /* CRITICAL: Fixed body prevents document-level scrolling */
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    
     /* Prevent any overscroll behavior at body level */
     overscroll-behavior: none;
     -webkit-overscroll-behavior: none;
+  }
+  
+  /* Mobile-only: Fixed body prevents document-level scrolling (mobile layouts have their own scroll containers) */
+  @media (max-width: 767px) {
+    body {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
   }
 
   .dark {
