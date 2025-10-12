@@ -297,6 +297,13 @@
       @signup-success="handleSignupSuccess"
     />
 
+    <!-- Welcome Modal -->
+    <WelcomeModal
+      :is-open="showWelcomeModal"
+      @close="handleWelcomeClose"
+      @get-started="handleWelcomeGetStarted"
+    />
+
     <!-- Profile Bottom Sheet for Mobile -->
     <ProfileBottomSheet
       v-if="isMobile"
@@ -485,6 +492,7 @@ import { useAppLifecycle } from './composables/useAppLifecycle';
 import { useUserMenu } from './composables/useUserMenu';
 import { useOverscrollPrevention } from './composables/useOverscrollPrevention';
 import AuthModal from './components/auth/AuthModal.vue';
+import WelcomeModal from './components/WelcomeModal.vue';
 import PurchaseCredits from './components/credits/PurchaseCredits.vue';
 import ProfileBottomSheet from './components/ProfileBottomSheet.vue';
 import DesktopLayout from './components/layouts/DesktopLayout.vue';
@@ -533,11 +541,15 @@ const isOnMobileAuthScreen = computed(() => {
 const {
   isAuthModalOpen: showAuthModal,
   isPurchaseModalOpen: showPurchaseModal,
+  isWelcomeModalOpen: showWelcomeModal,
   authModalMode: authModalView,
   openAuthModal,
   closeAuthModal,
   openPurchaseModal,
   closePurchaseModal,
+  openWelcomeModal,
+  closeWelcomeModal,
+  shouldShowWelcomeModal,
 } = useModals();
 
 // Initialize app lifecycle management
@@ -613,6 +625,15 @@ const handlePurchaseCompleted = (result) => {
   });
   closePurchaseModal();
   creditStore.loadCredits();
+};
+
+const handleWelcomeGetStarted = () => {
+  closeWelcomeModal();
+  openAuthModal('signup');
+};
+
+const handleWelcomeClose = () => {
+  closeWelcomeModal();
 };
 
 const handleOpenAuthModal = (event) => {
@@ -778,6 +799,15 @@ onMounted(async () => {
     });
   } finally {
     logger.debug('Initialization complete');
+    
+    // Show welcome modal if not authenticated and not previously dismissed
+    if (!authStore.isAuthenticated && shouldShowWelcomeModal()) {
+      logger.debug('Showing welcome modal for first-time visitor');
+      // Delay slightly to ensure UI is ready
+      setTimeout(() => {
+        openWelcomeModal();
+      }, 500);
+    }
   }
 });
 

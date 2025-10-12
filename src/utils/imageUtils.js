@@ -598,7 +598,7 @@ export class ImageProcessor {
    * Validate image file
    */
   validateImageFile(file, maxSize = 10 * 1024 * 1024) {
-    // 10MB default
+    // Default 10MB maximum
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
     if (!validTypes.includes(file.type)) {
@@ -671,10 +671,10 @@ export class ImageProcessor {
         ...analysis.recommendations,
       });
 
-      // Use PNG for high quality, JPEG for smaller files
+      // Always use maximum quality (100%)
       const useHighQuality = options.highQuality || options.preserveQuality;
       const format = useHighQuality ? 'image/png' : 'image/jpeg';
-      const quality = useHighQuality ? 1.0 : 0.95;
+      const quality = 1.0; // Always use 100% quality
 
       const result = {
         canvas: resizedCanvas,

@@ -33,9 +33,8 @@
             <p
               class="text-lg leading-relaxed text-[var(--color-muted-foreground)]"
             >
-              Control image processing defaults and manage privacy preferences —
-              all with the same polished visual language as the rest of the
-              application.
+              Manage your privacy preferences and account settings — all with
+              the same polished visual language as the rest of the application.
             </p>
           </div>
         </div>
@@ -72,97 +71,6 @@
         <div
           class="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-soft"
         >
-          <header class="flex items-start justify-between gap-3">
-            <div class="space-y-1.5">
-              <h2
-                class="text-xl font-semibold text-[var(--color-card-foreground)]"
-              >
-                Image processing defaults
-              </h2>
-              <p
-                class="text-sm leading-relaxed text-[var(--color-muted-foreground)]"
-              >
-                These defaults are applied whenever you launch a new outfit
-                blend session. Override them per generation whenever you need
-                finer control.
-              </p>
-            </div>
-          </header>
-
-          <div class="mt-6 space-y-5">
-            <div class="grid gap-5 sm:grid-cols-2">
-              <div class="space-y-2">
-                <label
-                  for="max-image-size"
-                  class="text-sm font-semibold text-[var(--color-card-foreground)]"
-                >
-                  Maximum image size (MB)
-                </label>
-                <select
-                  id="max-image-size"
-                  v-model="settings.maxImageSize"
-                  class="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-medium text-[var(--color-card-foreground)] transition focus:border-[var(--color-brand-500)] focus:outline-none focus:ring-0"
-                >
-                  <option value="5">5 MB</option>
-                  <option value="10">10 MB</option>
-                  <option value="15">15 MB</option>
-                  <option value="20">20 MB</option>
-                </select>
-                <p class="text-xs text-[var(--color-muted-foreground)]">
-                  Larger image uploads provide more detail but will take longer
-                  to process.
-                </p>
-              </div>
-
-              <div class="space-y-2">
-                <label
-                  for="image-quality"
-                  class="text-sm font-semibold text-[var(--color-card-foreground)]"
-                >
-                  Output image quality
-                </label>
-                <select
-                  id="image-quality"
-                  v-model="settings.imageQuality"
-                  class="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-medium text-[var(--color-card-foreground)] transition focus:border-[var(--color-brand-500)] focus:outline-none focus:ring-0"
-                >
-                  <option value="0.7">Standard (70%)</option>
-                  <option value="0.8">High (80%)</option>
-                  <option value="0.9">Very High (90%)</option>
-                  <option value="1.0">Maximum (100%)</option>
-                </select>
-                <p class="text-xs text-[var(--color-muted-foreground)]">
-                  Higher quality improves textures and lighting continuity at
-                  the cost of file size.
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <label
-                class="flex items-start gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/40 px-4 py-3 text-sm text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)]"
-              >
-                <input
-                  id="auto-resize"
-                  v-model="settings.autoResize"
-                  type="checkbox"
-                  class="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-brand-500)] focus:ring-[var(--color-brand-500)]"
-                />
-                <div>
-                  <p class="font-semibold">Automatically resize large images</p>
-                  <p class="text-xs text-[var(--color-muted-foreground)]">
-                    Maintain the best balance between detail and performance
-                    when users upload oversized assets.
-                  </p>
-                </div>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-soft"
-        >
           <header class="space-y-1.5">
             <h2
               class="text-xl font-semibold text-[var(--color-card-foreground)]"
@@ -193,6 +101,25 @@
                 <p class="font-semibold">Use local device storage</p>
                 <p class="text-xs text-[var(--color-muted-foreground)]">
                   Save generated images directly on your device for offline access and privacy. When disabled, images are stored in the cloud (requires internet).
+                </p>
+              </div>
+            </label>
+
+            <!-- Supabase Storage Toggle (Website Only) -->
+            <label
+              v-if="!isTauriMobile && isAuthenticated"
+              class="flex items-start gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/40 px-4 py-3 text-sm text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)]"
+            >
+              <input
+                id="save-to-supabase"
+                v-model="settings.saveToSupabase"
+                type="checkbox"
+                class="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-brand-500)] focus:ring-[var(--color-brand-500)]"
+              />
+              <div>
+                <p class="font-semibold">Save images to cloud storage</p>
+                <p class="text-xs text-[var(--color-muted-foreground)]">
+                  Store generated images in Supabase for access across devices. When disabled, images are saved locally in your browser (IndexedDB).
                 </p>
               </div>
             </label>
@@ -525,12 +452,10 @@ const biometricAvailable = computed(() => isBiometricAvailable.value);
 const isTogglingBiometric = ref(false);
 
 const settings = reactive({
-  maxImageSize: 10,
-  imageQuality: 0.9,
-  autoResize: true,
   saveHistory: true,
   autoDeleteDays: 30,
   useLocalStorage: true, // Default to local storage on mobile
+  saveToSupabase: false, // Default to local browser storage on web
 });
 
 onMounted(() => {
@@ -544,6 +469,12 @@ const loadSettings = () => {
     try {
       const parsedSettings = JSON.parse(stored);
       Object.assign(settings, parsedSettings);
+      
+      // Sync useLocalStorage with saveToSupabase for web users
+      // If saveToSupabase is true, useLocalStorage should be false
+      if (!isTauriMobile.value && typeof parsedSettings.saveToSupabase === 'boolean') {
+        settings.useLocalStorage = !parsedSettings.saveToSupabase;
+      }
     } catch (error) {
       console.error('Error loading settings:', error);
     }
@@ -551,6 +482,11 @@ const loadSettings = () => {
 };
 
 const saveSettings = () => {
+  // For web users, sync useLocalStorage with saveToSupabase
+  if (!isTauriMobile.value) {
+    settings.useLocalStorage = !settings.saveToSupabase;
+  }
+  
   localStorage.setItem('app_settings', JSON.stringify(settings));
   appStore.addToast({
     type: 'success',
@@ -570,11 +506,10 @@ const clearAllData = () => {
     localStorage.removeItem('wardrobe_items');
 
     Object.assign(settings, {
-      maxImageSize: 10,
-      imageQuality: 0.9,
-      autoResize: true,
       saveHistory: true,
       autoDeleteDays: 30,
+      useLocalStorage: true,
+      saveToSupabase: false,
     });
 
     appStore.addToast({

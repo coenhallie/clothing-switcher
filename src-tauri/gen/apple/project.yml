@@ -10,7 +10,7 @@ configs:
 settingGroups:
   app:
     base:
-      PRODUCT_NAME: SwitchFit Studio
+      PRODUCT_NAME: SwitchFit
       PRODUCT_BUNDLE_IDENTIFIER: com.switchfit.studio
 targetTemplates:
   app:

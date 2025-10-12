@@ -1,5 +1,6 @@
 import { supabase, TABLES } from './supabaseClient.js';
 import LocalStorageService from './localStorageService.js';
+import BrowserStorageService from './browserStorageService.js';
 
 /**
  * Check if running in Tauri mobile environment
@@ -19,28 +20,38 @@ async function isTauriMobile() {
 
 /**
  * Check if should use local storage based on platform and user preference
+ * Returns object with storage type: 'tauri', 'browser', or 'supabase'
  */
 async function shouldUseLocalStorage() {
   const isMobile = await isTauriMobile();
   
-  // Only available on mobile
-  if (!isMobile) {
-    return false;
-  }
-  
-  // Check user preference (defaults to true for mobile)
+  // Check user preference from settings
   const settings = localStorage.getItem('app_settings');
+  let useLocalStorage = isMobile; // Default: mobile uses local, web uses Supabase
+  
   if (settings) {
     try {
       const parsed = JSON.parse(settings);
-      // Default to local storage if preference not set
-      return parsed.useLocalStorage !== false;
+      // Check if user has explicitly set a preference
+      if (typeof parsed.useLocalStorage === 'boolean') {
+        useLocalStorage = parsed.useLocalStorage;
+      }
     } catch (error) {
-      return true; // Default to local storage on mobile
+      console.error('[GalleryService] Error parsing settings:', error);
     }
   }
   
-  return true; // Default to local storage on mobile
+  // Determine storage type
+  if (!useLocalStorage) {
+    return { type: 'supabase', service: null };
+  }
+  
+  // Use local storage - determine which service
+  if (isMobile) {
+    return { type: 'tauri', service: LocalStorageService };
+  } else {
+    return { type: 'browser', service: BrowserStorageService };
+  }
 }
 
 /**
@@ -62,14 +73,15 @@ export class GalleryService {
    */
   static async saveImage(imageData) {
     try {
-      // Check if should use local storage based on platform and preference
-      const useLocal = await shouldUseLocalStorage();
-      if (useLocal) {
-        console.log('[GalleryService] Using local storage');
-        return await LocalStorageService.saveImage(imageData);
+      // Check storage preference
+      const storage = await shouldUseLocalStorage();
+      
+      if (storage.type !== 'supabase') {
+        console.log(`[GalleryService] Using ${storage.type} storage`);
+        return await storage.service.saveImage(imageData);
       }
 
-      // Use Supabase for web and desktop
+      // Use Supabase storage
       console.log('[GalleryService] Using Supabase storage');
       
       // Get the current user
@@ -124,14 +136,15 @@ export class GalleryService {
    */
   static async getGalleryImages(options = {}) {
     try {
-      // Check if should use local storage based on platform and preference
-      const useLocal = await shouldUseLocalStorage();
-      if (useLocal) {
-        console.log('[GalleryService] Fetching from local storage');
-        return await LocalStorageService.getGalleryImages(options);
+      // Check storage preference
+      const storage = await shouldUseLocalStorage();
+      
+      if (storage.type !== 'supabase') {
+        console.log(`[GalleryService] Fetching from ${storage.type} storage`);
+        return await storage.service.getGalleryImages(options);
       }
 
-      // Use Supabase for web and desktop
+      // Use Supabase storage
       console.log('[GalleryService] Fetching from Supabase');
       
       // Get the current user
@@ -183,13 +196,14 @@ export class GalleryService {
    */
   static async getImageById(imageId) {
     try {
-      // Check if should use local storage based on platform and preference
-      const useLocal = await shouldUseLocalStorage();
-      if (useLocal) {
-        return await LocalStorageService.getImageById(imageId);
+      // Check storage preference
+      const storage = await shouldUseLocalStorage();
+      
+      if (storage.type !== 'supabase') {
+        return await storage.service.getImageById(imageId);
       }
 
-      // Use Supabase for web and desktop
+      // Use Supabase storage
       const { data, error } = await supabase
         .from(TABLES.GALLERY_IMAGES)
         .select('*')
@@ -215,13 +229,14 @@ export class GalleryService {
    */
   static async deleteImage(imageId) {
     try {
-      // Check if should use local storage based on platform and preference
-      const useLocal = await shouldUseLocalStorage();
-      if (useLocal) {
-        return await LocalStorageService.deleteImage(imageId);
+      // Check storage preference
+      const storage = await shouldUseLocalStorage();
+      
+      if (storage.type !== 'supabase') {
+        return await storage.service.deleteImage(imageId);
       }
 
-      // Use Supabase for web and desktop
+      // Use Supabase storage
       const { error } = await supabase
         .from(TABLES.GALLERY_IMAGES)
         .delete()
@@ -304,13 +319,14 @@ export class GalleryService {
    */
   static async getGalleryStats() {
     try {
-      // Check if should use local storage based on platform and preference
-      const useLocal = await shouldUseLocalStorage();
-      if (useLocal) {
-        return await LocalStorageService.getGalleryStats();
+      // Check storage preference
+      const storage = await shouldUseLocalStorage();
+      
+      if (storage.type !== 'supabase') {
+        return await storage.service.getGalleryStats();
       }
 
-      // Use Supabase for web and desktop
+      // Use Supabase storage
       // Get the current user
       const {
         data: { user },

@@ -25,7 +25,14 @@
                 to="/"
                 class="inline-flex items-center gap-2 text-xl font-semibold tracking-tight text-[var(--color-card-foreground)]"
               >
-                <span>SwitchFit Studio</span>
+                <img
+                  :src="currentLogo"
+                  alt="SwitchFit Studio"
+                  class="h-9 w-9 rounded-xl"
+                  width="36"
+                  height="36"
+                />
+                <span>SwitchFit</span>
                 <span
                   class="rounded-full border border-[color-mix(in_oklch,var(--color-brand-500)_35%,transparent)] bg-[color-mix(in_oklch,var(--color-brand-500)_18%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brand-700)] shadow-border"
                 >
@@ -103,10 +110,19 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '../../stores/authStore';
+import { useTheme } from '../../composables/useTheme';
+import logoBlack from '../../assets/images/logo-switchfit-black.png';
+import logoWhite from '../../assets/images/logo-switchfit-white.png';
 
 const route = useRoute();
 const authStore = useAuthStore();
 const { isAuthenticated } = storeToRefs(authStore);
+const { isDark } = useTheme();
+
+/**
+ * Computed property to select the appropriate logo based on current theme
+ */
+const currentLogo = computed(() => isDark.value ? logoWhite : logoBlack);
 
 const navigation = computed(() => {
   const baseNavigation = [

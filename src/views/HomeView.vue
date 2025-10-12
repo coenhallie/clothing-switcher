@@ -237,7 +237,7 @@
                     viewBox="0 0 24 24"
                   >
                     <path
-                      d="m7 14 3-3 4 4 2-2 4 4M3 5h6M5 3v6"
+                      d="M12 5v14m7-7H5"
                       stroke="currentColor"
                       stroke-width="1.5"
                       stroke-linecap="round"

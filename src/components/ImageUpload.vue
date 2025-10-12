@@ -227,7 +227,7 @@ const props = defineProps({
   },
   maxSize: {
     type: Number,
-    default: 20 * 1024 * 1024, // 20MB
+    default: 10 * 1024 * 1024, // 10MB
   },
   acceptedTypes: {
     type: String,
@@ -333,6 +333,7 @@ const processFiles = async (files) => {
           preserveDetail: true,
           targetType: 'general',
           highQuality: true,
+          preserveQuality: true,
           disableOrientationCorrection: true,
         }
       );

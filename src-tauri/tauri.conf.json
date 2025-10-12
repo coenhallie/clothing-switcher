@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "SwitchFit Studio",
+  "productName": "SwitchFit",
   "version": "0.1.0",
   "identifier": "com.switchfit.studio",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "SwitchFit Studio",
+        "title": "SwitchFit",
         "width": 1024,
         "height": 768,
         "resizable": true,
