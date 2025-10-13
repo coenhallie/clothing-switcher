@@ -69,6 +69,13 @@ export function usePlatform() {
   const isDesktop = computed(() => !isMobile.value);
 
   /**
+   * Computed property to check if running in any Tauri environment
+   */
+  const isTauri = computed(() => {
+    return typeof window !== 'undefined' && !!window.__TAURI__;
+  });
+
+  /**
    * Computed property for touch capability detection
    */
   const isTouchDevice = computed(() => {

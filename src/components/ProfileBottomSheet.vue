@@ -453,7 +453,7 @@ onUnmounted(() => {
 .profile-sheet__actions {
   flex: 1;
   overflow-y: auto;
-  padding: 0 1.5rem;
+  padding: 0 1.5rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

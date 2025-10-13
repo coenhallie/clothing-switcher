@@ -126,9 +126,38 @@ STRICT REQUIREMENTS:
 
       for (const part of parts) {
         if (part.inlineData?.data && part.inlineData?.mimeType) {
-          if (originalInlineData.has(part.inlineData.data)) {
+          const imageData = part.inlineData.data;
+          
+          // Check for exact match (AI returned original image unchanged)
+          if (originalInlineData.has(imageData)) {
+            console.warn('Skipping original image returned by AI (exact match)');
             continue;
           }
+          
+          // Check for near-identical match (AI returned minimally modified original)
+          // Compare first 100 chars and last 100 chars of base64 as a quick similarity check
+          let isSimilarToOriginal = false;
+          
+          for (const originalData of originalInlineData) {
+            if (imageData.length > 200 && originalData.length > 200) {
+              const dataPrefix = imageData.substring(0, 100);
+              const dataSuffix = imageData.substring(imageData.length - 100);
+              const origPrefix = originalData.substring(0, 100);
+              const origSuffix = originalData.substring(originalData.length - 100);
+              
+              // If both prefix and suffix match, it's likely the same image
+              if (dataPrefix === origPrefix && dataSuffix === origSuffix) {
+                isSimilarToOriginal = true;
+                console.warn('Skipping near-identical image returned by AI (similarity match)');
+                break;
+              }
+            }
+          }
+          
+          if (isSimilarToOriginal) {
+            continue;
+          }
+          
           const mimeType = part.inlineData.mimeType;
           const dataUrl = `data:${mimeType};base64,${part.inlineData.data}`;
 
@@ -142,7 +171,7 @@ STRICT REQUIREMENTS:
       }
 
       console.error(
-        'Gemini image generation returned no inline image data:',
+        'No valid generated image found in Gemini response:',
         JSON.stringify(response, null, 2)
       );
 
@@ -151,7 +180,7 @@ STRICT REQUIREMENTS:
         success: false,
         error: 'NO_IMAGE_GENERATED',
         message:
-          'The AI was unable to generate an image. Please try again with different images.',
+          'The AI returned an identical or near-identical image instead of generating a new one. This can happen occasionally - use the retry button to try again without being charged.',
         timestamp: new Date().toISOString(),
       };
     } catch (error) {

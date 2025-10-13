@@ -314,7 +314,7 @@
         <button
           v-if="isAuthenticated"
           type="button"
-          @click="generateClothingMimic"
+          @click="generateClothingMimic()"
           :disabled="!canGenerate || isGenerating"
           class="group inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-soft transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -383,7 +383,7 @@
       v-if="resultImage"
       class="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-soft"
     >
-      <header class="flex flex-wrap items-center justify-between gap-3">
+      <header class="space-y-4">
         <div>
           <h2 class="text-xl font-semibold text-[var(--color-card-foreground)]">
             Generated preview
@@ -392,21 +392,41 @@
             Your silhouette blended with the selected inspiration.
           </p>
         </div>
-        <button
-          type="button"
-          @click="downloadResult"
-          class="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)] hover:bg-[color-mix(in_oklch,var(--color-brand-500)_12%,transparent)]"
-        >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24">
-            <path
-              d="M12 4v12m0 0 4-4m-4 4-4-4m-4 8h16"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-            />
-          </svg>
-          Download PNG
-        </button>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <button
+            type="button"
+            @click="downloadResult"
+            class="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)] hover:bg-[color-mix(in_oklch,var(--color-brand-500)_12%,transparent)]"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24">
+              <path
+                d="M12 4v12m0 0 4-4m-4 4-4-4m-4 8h16"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+              />
+            </svg>
+            Download PNG
+          </button>
+          <button
+            v-show="canUseOneTimeRetry"
+            type="button"
+            @click="useOneTimeRetry"
+            :disabled="isGenerating"
+            class="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)] hover:bg-[color-mix(in_oklch,var(--color-brand-500)_12%,transparent)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24">
+              <path
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Try Again (1 free retry)
+          </button>
+        </div>
       </header>
       <div
         class="mt-6 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-black/5"
@@ -489,6 +509,7 @@ const targetFile = ref(null);
 const resultImage = ref(null);
 const isGenerating = ref(false);
 const errorMessage = ref('');
+const canUseOneTimeRetry = ref(false);
 
 const workflowSteps = [
   {
@@ -544,6 +565,7 @@ const handleSourceImageUpload = (event) => {
     };
     reader.readAsDataURL(file);
     errorMessage.value = '';
+    canUseOneTimeRetry.value = false;
   }
 };
 
@@ -557,6 +579,7 @@ const handleTargetImageUpload = (event) => {
     };
     reader.readAsDataURL(file);
     errorMessage.value = '';
+    canUseOneTimeRetry.value = false;
   }
 };
 
@@ -564,16 +587,20 @@ const removeSourceImage = () => {
   sourceImage.value = null;
   sourceFile.value = null;
   resultImage.value = null;
+  errorMessage.value = '';
+  canUseOneTimeRetry.value = false;
 };
 
 const removeTargetImage = () => {
   targetImage.value = null;
   targetFile.value = null;
   resultImage.value = null;
+  errorMessage.value = '';
+  canUseOneTimeRetry.value = false;
 };
 
-const generateClothingMimic = async () => {
-  if (!canGenerate.value) return;
+const generateClothingMimic = async (isOneTimeRetry = false) => {
+  if (!canGenerate.value && !isOneTimeRetry) return;
 
   if (!isAuthenticated.value) {
     appStore.addToast({
@@ -584,7 +611,7 @@ const generateClothingMimic = async () => {
     return;
   }
 
-  if (!hasCredits.value) {
+  if (!hasCredits.value && !isOneTimeRetry) {
     appStore.addToast({
       type: 'error',
       title: 'No credits available',
@@ -598,16 +625,21 @@ const generateClothingMimic = async () => {
   resultImage.value = null;
 
   try {
-    const creditResult = await creditStore.useCredit(1, 'AI outfit generation');
-    if (!creditResult.success) {
-      throw new Error(creditResult.error);
+    let creditUsed = false;
+    
+    // Only deduct credit if this is not a one-time retry
+    if (!isOneTimeRetry) {
+      const creditResult = await creditStore.useCredit(1, 'AI outfit generation');
+      if (!creditResult.success) {
+        throw new Error(creditResult.error);
+      }
+      creditUsed = true;
     }
 
     let result;
-    let creditUsed = true;
 
     try {
-      // Use OpenRouter service with hardcoded API key
+      // Use OpenRouter service
       result = await openRouterService.generateClothingTransfer(
         sourceFile.value,
         targetFile.value
@@ -616,6 +648,14 @@ const generateClothingMimic = async () => {
       if (result.success && result.imageUrl) {
         resultImage.value = result.imageUrl;
 
+        // Enable one-time retry after first generation, disable after retry is used
+        canUseOneTimeRetry.value = !isOneTimeRetry;
+        console.log('[DEBUG] Generation successful:', {
+          isOneTimeRetry,
+          canUseOneTimeRetry: canUseOneTimeRetry.value,
+          resultImage: !!resultImage.value
+        });
+
         // Save to gallery
         try {
           const imageData = {
@@ -623,9 +663,9 @@ const generateClothingMimic = async () => {
             generatedImageUrl: result.imageUrl,
             prompt: result.prompt || 'AI outfit generation',
             styleDescription: 'Clothing style transfer',
-            fileSize: null, // Will be calculated if needed
-            imageWidth: null, // Will be calculated if needed
-            imageHeight: null, // Will be calculated if needed
+            fileSize: null,
+            imageWidth: null,
+            imageHeight: null,
           };
 
           const galleryResult = await GalleryService.saveImage(imageData);
@@ -639,21 +679,27 @@ const generateClothingMimic = async () => {
           }
         } catch (galleryError) {
           console.error('Error saving to gallery:', galleryError);
-          // Don't fail the generation if gallery save fails
         }
+
+        const creditMessage = isOneTimeRetry
+          ? `Preview rendered successfully (free retry). ${credits.value} credits remaining.`
+          : `Preview rendered successfully. ${credits.value} credits remaining.`;
 
         appStore.addToast({
           type: 'success',
           title: 'Outfit blend ready',
-          message: `Preview rendered successfully. ${creditResult.newBalance} credits remaining.`,
+          message: creditMessage,
         });
       } else {
-        await creditStore.addCredits(
-          1,
-          'refunded',
-          'Refund for failed generation - no image generated'
-        );
-        creditUsed = false;
+        // Refund credit if it was used and generation failed
+        if (creditUsed) {
+          await creditStore.addCredits(
+            1,
+            'refunded',
+            'Refund for failed generation - no image generated'
+          );
+          creditUsed = false;
+        }
 
         if (result.error === 'NO_IMAGE_GENERATED') {
           throw new Error(
@@ -665,6 +711,7 @@ const generateClothingMimic = async () => {
         }
       }
     } catch (apiError) {
+      // Refund credit if it was used and there was an API error
       if (creditUsed) {
         await creditStore.addCredits(
           1,
@@ -685,6 +732,16 @@ const generateClothingMimic = async () => {
   } finally {
     isGenerating.value = false;
   }
+};
+
+const useOneTimeRetry = () => {
+  console.log('[DEBUG] Retry button clicked:', {
+    canUseOneTimeRetry: canUseOneTimeRetry.value,
+    isGenerating: isGenerating.value
+  });
+  if (!canUseOneTimeRetry.value || isGenerating.value) return;
+  canUseOneTimeRetry.value = false; // Consume the retry
+  generateClothingMimic(true);
 };
 
 const openAuthModalSignup = () => {

@@ -176,9 +176,37 @@ ${compatibilityInfo}`;
         if (message.content && message.content.parts) {
           for (const part of message.content.parts) {
             if (part.inline_data && part.inline_data.data) {
+              // Check for exact match (AI returned original image unchanged)
               if (originalInlineData.has(part.inline_data.data)) {
+                console.warn('Skipping original image returned by AI (exact match)');
                 continue;
               }
+              
+              // Check for near-identical match (AI returned minimally modified original)
+              // Compare first 100 chars and last 100 chars of base64 as a quick similarity check
+              const imageData = part.inline_data.data;
+              let isSimilarToOriginal = false;
+              
+              for (const originalData of [sourceBase64, targetBase64]) {
+                if (imageData.length > 200 && originalData.length > 200) {
+                  const dataPrefix = imageData.substring(0, 100);
+                  const dataSuffix = imageData.substring(imageData.length - 100);
+                  const origPrefix = originalData.substring(0, 100);
+                  const origSuffix = originalData.substring(originalData.length - 100);
+                  
+                  // If both prefix and suffix match, it's likely the same image
+                  if (dataPrefix === origPrefix && dataSuffix === origSuffix) {
+                    isSimilarToOriginal = true;
+                    console.warn('Skipping near-identical image returned by AI (similarity match)');
+                    break;
+                  }
+                }
+              }
+              
+              if (isSimilarToOriginal) {
+                continue;
+              }
+              
               // Convert base64 data to data URL
               const mimeType = part.inline_data.mime_type || 'image/png';
               const dataUrl = `data:${mimeType};base64,${part.inline_data.data}`;
@@ -197,9 +225,35 @@ ${compatibilityInfo}`;
         if (message.content && Array.isArray(message.content)) {
           for (const part of message.content) {
             if (part.inline_data && part.inline_data.data) {
+              // Check for exact match
               if (originalInlineData.has(part.inline_data.data)) {
+                console.warn('Skipping original image returned by AI (exact match)');
                 continue;
               }
+              
+              // Check for near-identical match
+              const imageData = part.inline_data.data;
+              let isSimilarToOriginal = false;
+              
+              for (const originalData of [sourceBase64, targetBase64]) {
+                if (imageData.length > 200 && originalData.length > 200) {
+                  const dataPrefix = imageData.substring(0, 100);
+                  const dataSuffix = imageData.substring(imageData.length - 100);
+                  const origPrefix = originalData.substring(0, 100);
+                  const origSuffix = originalData.substring(originalData.length - 100);
+                  
+                  if (dataPrefix === origPrefix && dataSuffix === origSuffix) {
+                    isSimilarToOriginal = true;
+                    console.warn('Skipping near-identical image returned by AI (similarity match)');
+                    break;
+                  }
+                }
+              }
+              
+              if (isSimilarToOriginal) {
+                continue;
+              }
+              
               const mimeType = part.inline_data.mime_type || 'image/png';
               const dataUrl = `data:${mimeType};base64,${part.inline_data.data}`;
 
@@ -219,6 +273,7 @@ ${compatibilityInfo}`;
             const url = img?.image_url?.url;
             if (!url) continue;
             if (originalImageUrls.has(url)) {
+              console.warn('Skipping original image URL returned by AI');
               continue;
             }
 
@@ -234,7 +289,7 @@ ${compatibilityInfo}`;
 
       // Log the actual response structure for debugging
       console.error(
-        'Unexpected response structure:',
+        'No valid generated image found in response:',
         JSON.stringify(result, null, 2)
       );
 
@@ -243,7 +298,7 @@ ${compatibilityInfo}`;
         success: false,
         error: 'NO_IMAGE_GENERATED',
         message:
-          'The AI was unable to generate an image. Please try again with different images.',
+          'The AI returned an identical or near-identical image instead of generating a new one. This can happen occasionally - use the retry button to try again without being charged.',
         timestamp: new Date().toISOString(),
       };
     } catch (error) {

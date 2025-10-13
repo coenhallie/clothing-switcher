@@ -508,7 +508,7 @@ const authStore = useAuthStore();
 const creditStore = useCreditStore();
 
 const { toasts, theme, resolvedTheme } = storeToRefs(appStore);
-const { isMobile, isDesktop } = usePlatform();
+const { isMobile, isDesktop, isTauri } = usePlatform();
 
 const { removeToast, addToast, setTheme, teardownThemeWatcher } = appStore;
 
@@ -800,8 +800,8 @@ onMounted(async () => {
   } finally {
     logger.debug('Initialization complete');
     
-    // Show welcome modal if not authenticated and not previously dismissed
-    if (!authStore.isAuthenticated && shouldShowWelcomeModal()) {
+    // Show welcome modal if not authenticated, not in Tauri app, and not previously dismissed
+    if (!authStore.isAuthenticated && !isTauri.value && shouldShowWelcomeModal()) {
       logger.debug('Showing welcome modal for first-time visitor');
       // Delay slightly to ensure UI is ready
       setTimeout(() => {
