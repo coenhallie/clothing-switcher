@@ -5,26 +5,18 @@ class GeminiService {
     this.apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     this.genAI = null;
     this.model = null;
-    this.visionModel = null;
-    this.imageModel = null;
 
     if (this.apiKey) {
       this.initializeModels();
     } else {
-      console.error('Gemini API key not found in environment variables');
+      console.debug('Gemini API key not configured - image generation features will be unavailable');
     }
   }
 
   initializeModels() {
     this.genAI = new GoogleGenerativeAI(this.apiKey);
     this.model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
-    });
-    this.visionModel = this.genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
-    });
-    this.imageModel = this.genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-image-preview',
+      model: 'google/gemini-3-pro-image-preview',
     });
   }
 
@@ -40,7 +32,7 @@ class GeminiService {
     targetImageFile,
     options = {}
   ) {
-    if (!this.imageModel) {
+    if (!this.model) {
       throw new Error('Gemini service not initialized');
     }
 
@@ -91,7 +83,7 @@ STRICT REQUIREMENTS:
         temperature: options.temperature ?? 0.7,
       };
 
-      const result = await this.imageModel.generateContent({
+      const result = await this.model.generateContent({
         contents: [
           {
             role: 'user',
@@ -190,7 +182,7 @@ STRICT REQUIREMENTS:
   }
 
   async analyzeClothing(imageFile) {
-    if (!this.visionModel) {
+    if (!this.model) {
       throw new Error('Gemini service not initialized');
     }
 
@@ -224,7 +216,7 @@ STRICT REQUIREMENTS:
         }
       `;
 
-      const result = await this.visionModel.generateContent([
+      const result = await this.model.generateContent([
         prompt,
         imageData,
       ]);
@@ -248,7 +240,7 @@ STRICT REQUIREMENTS:
   }
 
   async detectBodyPose(imageFile) {
-    if (!this.visionModel) {
+    if (!this.model) {
       throw new Error('Gemini service not initialized');
     }
 
@@ -284,7 +276,7 @@ STRICT REQUIREMENTS:
         }
       `;
 
-      const result = await this.visionModel.generateContent([
+      const result = await this.model.generateContent([
         prompt,
         imageData,
       ]);
@@ -421,7 +413,7 @@ STRICT REQUIREMENTS:
   }
 
   async enhanceImage(imageFile, enhancements = {}) {
-    if (!this.visionModel) {
+    if (!this.model) {
       throw new Error('Gemini service not initialized');
     }
 
@@ -442,7 +434,7 @@ STRICT REQUIREMENTS:
         Return suggestions in JSON format with specific adjustment values.
       `;
 
-      const result = await this.visionModel.generateContent([
+      const result = await this.model.generateContent([
         prompt,
         imageData,
       ]);
@@ -502,9 +494,7 @@ STRICT REQUIREMENTS:
     return (
       !!this.apiKey &&
       !!this.genAI &&
-      !!this.model &&
-      !!this.visionModel &&
-      !!this.imageModel
+      !!this.model
     );
   }
 }

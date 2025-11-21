@@ -233,7 +233,12 @@ class AuthService {
       } = await supabase.auth.getUser();
 
       if (error) {
-        console.warn('Get user error:', error);
+        // Missing session is expected for non-authenticated users, so use debug level
+        if (error.message === 'Auth session missing!') {
+          console.debug('No auth session found (user not logged in)');
+        } else {
+          console.warn('Get user error:', error);
+        }
         this.currentUser = null;
         this.currentProfile = null;
         return {

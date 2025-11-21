@@ -336,13 +336,19 @@ export const useAuthStore = defineStore('auth', () => {
         setProfile(null);
 
         // Don't set error for missing sessions - that's normal
-        if (result.error !== 'No authenticated user') {
-          logger.warn('Session loading failed:', result.error);
+        if (result.error !== 'No authenticated user' && result.error !== 'Auth session missing!') {
+          // Expected missing session errors should be debug level
+          if (result.error.includes('Auth session missing')) {
+            logger.debug('Session loading failed:', result.error);
+          } else {
+            logger.warn('Session loading failed:', result.error);
+          }
           // Only set error for unexpected failures
           if (
             !result.error.includes('expired') &&
             !result.error.includes('Invalid') &&
-            !result.error.includes('JWT')
+            !result.error.includes('JWT') &&
+            !result.error.includes('Auth session missing')
           ) {
             setError(result.error);
           }

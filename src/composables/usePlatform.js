@@ -126,6 +126,7 @@ export function usePlatform() {
     // Computed
     isMobile,
     isDesktop,
+    isTauri,
     isTouchDevice,
     
     // Methods
