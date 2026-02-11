@@ -1,66 +1,81 @@
 # AI Clothing Style Transfer Prompt
 
+## Design Principles
+
+The Subject Portrait is the **immutable base**. The output image must be an exact pixel-for-pixel replica of the Subject Portrait in every respect except for the clothing worn by the person. The Source Inspiration's format, size, orientation, and composition are completely irrelevant to the output — only clothing information is extracted from it.
+
+---
+
 ## Main Prompt
 
-Create a photorealistic AI-generated image where the person from the TARGET PERSON IMAGE is wearing the exact same clothing style, aesthetic, and overall visual elements from the REFERENCE CLOTHING IMAGE.
+```
+You are an expert AI image generation system performing a clothing style transfer. You receive two images: a Subject Portrait and a Source Inspiration. Your task is to produce a single output image that is an exact pixel-for-pixel replica of the Subject Portrait in every respect except for the clothing worn by the person.
 
-**IMPORTANT INSTRUCTIONS:**
+The Subject Portrait is the immutable base. The output image must match the Subject Portrait's exact dimensions, resolution, aspect ratio, orientation, and framing with zero deviation. If the Subject Portrait is 1080x1350 portrait orientation and the Source Inspiration is 1920x1080 landscape orientation, the output must still be exactly 1080x1350 portrait orientation. The Source Inspiration's format, size, orientation, and composition are completely irrelevant to the output dimensions. You are only extracting clothing information from it, never layout or framing information.
 
-- The REFERENCE CLOTHING IMAGE (first image) shows the clothing style, outfit, and aesthetic to copy
-- The TARGET PERSON IMAGE (second image) shows the person who should receive this clothing style
-- Generate an entirely new image of the TARGET PERSON wearing the clothing from the REFERENCE IMAGE
-- Maintain the TARGET PERSON's facial features, body shape, and physical characteristics completely unchanged
-- Only modify the clothing, accessories, and styling elements to match the REFERENCE IMAGE
-- The result should look natural and photorealistic, as if the TARGET PERSON was actually wearing the clothing from the REFERENCE IMAGE
+Do not alter, reframe, crop, resize, pad, reposition, or re-render any aspect of the Subject Portrait other than the clothing. The person's face, facial expression, skin tone, skin texture, hair, hair color, hairstyle, body pose, body proportions, hand positions, jewelry, accessories, tattoos, background, lighting direction, lighting color temperature, shadow placement, depth of field, camera angle, and overall photographic style must remain identical to the Subject Portrait. The background must not shift, regenerate, or change in any way. The edges of the image must align exactly with the original Subject Portrait boundaries.
 
-**Instructions:**
+From the Source Inspiration image, extract only the clothing items, fabric textures, patterns, colors, garment structure, fit style, layering, and design details. Adapt and map these clothing attributes onto the subject's body as it appears in the Subject Portrait, respecting the subject's exact pose, body shape, and proportions. The clothing must conform naturally to the subject's posture and anatomy as shown, with realistic wrinkles, folds, draping, and shadow interaction that match the existing lighting conditions of the Subject Portrait. If parts of the source outfit are not visible or applicable given the subject's pose or crop, infer the most natural and coherent continuation of the garment style.
 
-- Analyze the clothing, accessories, and overall style from the REFERENCE CLOTHING IMAGE
-- Apply this exact clothing style to the TARGET PERSON from the second image
-- Preserve the target person's physical features, face, body shape, and pose completely unchanged
-- Only modify the clothing, accessories, and styling elements
-- Maintain natural lighting and composition
-- Ensure the clothing fits naturally on the target person's body type and pose
+The final output is the Subject Portrait with only the clothing replaced. Nothing else changes. Dimensions are preserved exactly. This is a non-negotiable constraint.
+```
 
-**Clothing Elements to Transfer:**
+## Image Labelling in API Payload
 
-- All garments (shirts, pants, dresses, jackets, etc.)
-- Colors, patterns, and textures of the clothing
-- Accessories (jewelry, watches, bags, hats, etc.)
-- Footwear and socks/stockings
-- Hair styling if applicable
-- Makeup style if applicable
+When sending images to the AI model, label them clearly:
 
-**Quality Requirements:**
-
-- High resolution and photorealistic output
-- Natural lighting and shadows on the transferred clothing
-- Proper fabric draping and fit for the target person's body
-- Seamless integration without obvious AI artifacts
-- Maintain original photo quality and clarity
-
-**Important Notes:**
-
-- Do NOT change the target person's face, body shape, or physical characteristics
-- Do NOT alter the background or setting of the target photo
-- Focus solely on clothing and style transfer
-- Ensure the clothing appears as if it was naturally worn by the target person
-- Preserve any unique poses or gestures from the target photo
+- **First image label:** `SUBJECT PORTRAIT (immutable base — preserve everything except clothing):`
+- **Second image label:** `SOURCE INSPIRATION (clothing reference to transfer onto the subject):`
 
 ## Alternative Shorter Prompt
 
-Transfer the exact clothing style from the source image to the person in the target image. Keep the target person's face, body, and pose unchanged. Only modify clothing, accessories, and styling to match the source photo exactly. Generate a photorealistic result with natural lighting and proper clothing fit.
+```
+Using the subject portrait as the base, generate a result image that matches the exact same dimensions, resolution, and aspect ratio as the subject portrait. The only modification allowed is replacing the clothing on the subject with the clothing seen in the source inspiration image. Everything else about the subject portrait must remain completely identical and untouched, including but not limited to the subject's face, facial expression, skin tone, hair, hairstyle, body pose, body proportions, hand positioning, background, lighting, shadows, color grading, and overall composition. The clothing from the source inspiration image should be accurately transferred onto the subject, respecting the fabric texture, color, pattern, fit, and style as they appear in the source inspiration, while naturally conforming to the subject's body pose and proportions.
+```
 
 ## Technical Specifications
 
-**Input:** Two images
+### Input
+- **Two images** provided in the message content
+  - Subject Portrait: The immutable base — person whose appearance is preserved
+  - Source Inspiration: Contains the clothing to extract and transfer
 
-- Source image: Contains the clothing style to be copied
-- Target image: Contains the person who will receive the new clothing style
+### Output
+- **Single image** with:
+  - Exact same dimensions and aspect ratio as the Subject Portrait
+  - Pixel-for-pixel replica except for the clothing region
+  - Photorealistic quality with seamless integration
+  - All non-clothing elements preserved identically
 
-**Output:** Single image
+### Model Configuration
+- **Model:** `google/gemini-3-pro-image-preview` (via OpenRouter)
+- **Modalities:** `["text", "image"]` (required by OpenRouter for image generation output)
+- **Temperature:** `0.4` (lower for more faithful reproduction)
+- **Max tokens:** `20000`
 
-- Target person wearing the source clothing style
-- Photorealistic quality
-- Natural integration of clothing elements
-- Preserved target person identity and pose
+### Image Processing Pipeline
+1. Record original Subject Portrait dimensions before any optimization
+2. Optimize both images for AI processing (max 1024×1024)
+3. Preserve target (Subject Portrait) dimensions — never resize to match source (`preserveTargetDimensions: true`)
+4. Embed actual pixel dimensions and aspect ratio in the prompt
+5. Send Subject Portrait first, Source Inspiration second
+
+### What Gets Extracted from Source Inspiration
+- Clothing items (garments, outerwear, layers)
+- Fabric textures, patterns, and colors
+- Garment structure, fit style, and layering
+- Design details and construction
+- If parts are not visible/applicable for the subject's pose, infer natural continuation
+
+### What Must NEVER Change (Preserved from Subject Portrait)
+- Face, facial expression, facial features
+- Skin tone, skin texture
+- Hair, hairstyle, hair color
+- Body pose, body proportions, hand positions
+- Jewelry, accessories, tattoos (non-clothing items)
+- Background (every detail, object, texture)
+- Lighting direction, lighting color temperature
+- Shadow placement, depth of field
+- Camera angle, overall photographic style
+- Image dimensions, resolution, aspect ratio, orientation, framing
+- Image edges must align exactly with Subject Portrait boundaries

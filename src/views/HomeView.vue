@@ -521,67 +521,191 @@
         </div>
       </header>
 
-      <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="mt-6 flex flex-col gap-8">
         <div
           v-for="(imageUrl, index) in resultImages"
           :key="index"
-          class="relative rounded-2xl border border-[var(--color-border)] bg-black/5 overflow-hidden group"
+          class="flex flex-col gap-3"
         >
-          <img
-            :src="imageUrl"
-            :alt="`Generated outfit ${parseInt(index) + 1}`"
-            class="w-full h-auto object-contain"
-          />
-          
-          <!-- Image overlay with actions -->
-          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-            <div class="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-between">
-              <span class="text-white text-sm font-medium">
-                Inspiration {{ parseInt(index) + 1 }}
-              </span>
-              <div class="flex gap-2">
-                <button
-                  type="button"
-                  @click="downloadSingleResult(imageUrl, index)"
-                  class="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition"
-                  title="Download"
-                >
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="M12 4v12m0 0 4-4m-4 4-4-4m-4 8h16"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                    />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  @click="viewFullSize(imageUrl)"
-                  class="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition"
-                  title="View full size"
-                >
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="M15 3h6m0 0v6m0-6l-7 7M9 21H3m0 0v-6m0 6l7-7"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                    />
-                  </svg>
-                </button>
+          <!-- Side-by-side container for result image and video -->
+          <div class="flex flex-col sm:flex-row gap-4 items-start">
+            <!-- Result image -->
+            <div class="relative rounded-2xl border border-[var(--color-border)] bg-black/5 overflow-hidden group flex-1 min-w-0">
+              <img
+                :src="imageUrl"
+                :alt="`Generated outfit ${parseInt(index) + 1}`"
+                class="w-full h-auto object-contain"
+              />
+              
+              <!-- Image overlay with actions -->
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-between">
+                  <span class="text-white text-sm font-medium">
+                    Inspiration {{ parseInt(index) + 1 }}
+                  </span>
+                  <div class="flex gap-2">
+                    <!-- Generate Video button -->
+                    <button
+                      type="button"
+                      @click.stop="generateVideo(parseInt(index))"
+                      :disabled="isGeneratingVideo || !hasCredits"
+                      class="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                      :title="videoResults[index] ? 'Regenerate video' : 'Generate 5s video (1 credit)'"
+                    >
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <path
+                          d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                        <path
+                          d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      @click="downloadSingleResult(imageUrl, index)"
+                      class="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition"
+                      title="Download"
+                    >
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <path
+                          d="M12 4v12m0 0 4-4m-4 4-4-4m-4 8h16"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      @click="viewFullSize(imageUrl)"
+                      class="p-2 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition"
+                      title="View full size"
+                    >
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <path
+                          d="M15 3h6m0 0v6m0-6l-7 7M9 21H3m0 0v-6m0 6l7-7"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Source thumbnail indicator -->
+              <div class="absolute top-3 left-3 flex items-center gap-2">
+                <div class="h-12 w-12 rounded-lg overflow-hidden border-2 border-white/50 shadow-lg">
+                  <img
+                    :src="sourceImages[index]?.preview"
+                    :alt="`Source ${parseInt(index) + 1}`"
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+
+              <!-- Video generating indicator (overlays the image) -->
+              <div
+                v-if="isGeneratingVideo && selectedSourceIndex === parseInt(index)"
+                class="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm rounded-2xl"
+              >
+                <svg class="h-8 w-8 animate-spin text-white mb-3" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" />
+                  <path d="M4 12a8 8 0 0 1 8-8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                <span class="text-white text-sm font-medium">{{ videoProgress || 'Generating video…' }}</span>
+              </div>
+
+              <!-- Video badge -->
+              <div
+                v-if="videoResults[index]"
+                class="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-emerald-500/90 backdrop-blur-sm px-2.5 py-1 text-[11px] font-semibold text-white shadow"
+              >
+                <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+                </svg>
+                Video
               </div>
             </div>
-          </div>
 
-          <!-- Source thumbnail indicator -->
-          <div class="absolute top-3 left-3 flex items-center gap-2">
-            <div class="h-12 w-12 rounded-lg overflow-hidden border-2 border-white/50 shadow-lg">
-              <img
-                :src="sourceImages[index]?.preview"
-                :alt="`Source ${parseInt(index) + 1}`"
-                class="w-full h-full object-cover"
+            <!-- Video player (side by side with result image) -->
+            <div
+              v-if="videoResults[index]"
+              class="flex-1 min-w-0 flex flex-col rounded-2xl border border-[var(--color-border)] bg-black overflow-hidden"
+            >
+              <video
+                :ref="el => { if (el) videoRefs[index] = el }"
+                :src="videoResults[index]"
+                class="w-full h-auto object-contain"
+                controls
+                autoplay
+                loop
+                muted
+                playsinline
               />
+              <div class="flex items-center justify-between px-4 py-2 bg-[var(--color-surface)]">
+                <span class="text-xs text-[var(--color-muted-foreground)]">
+                  Inspiration {{ parseInt(index) + 1 }} — Video Preview
+                </span>
+                <a
+                  :href="videoResults[index]"
+                  :download="`switchfit-video-${parseInt(index) + 1}-${Date.now()}.mp4`"
+                  class="text-xs font-medium text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)] transition"
+                >
+                  Download video
+                </a>
+              </div>
+            </div>
+
+            <!-- Generate video placeholder (shown when no video yet, keeps layout balanced) -->
+            <div
+              v-if="!videoResults[index]"
+              class="flex-1 min-w-0 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_25%,transparent)]/60 p-8"
+            >
+              <div class="flex flex-col items-center gap-4 text-center">
+                <div class="flex h-14 w-14 items-center justify-center rounded-full border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_45%,transparent)]">
+                  <svg class="h-7 w-7 text-[var(--color-muted-foreground)]" fill="none" viewBox="0 0 24 24">
+                    <path
+                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                    />
+                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="1.5" />
+                  </svg>
+                </div>
+                <div class="space-y-1">
+                  <p class="text-sm font-semibold text-[var(--color-card-foreground)]">
+                    Create a video preview
+                  </p>
+                  <p class="text-xs text-[var(--color-muted-foreground)]">
+                    Bring this outfit to life with a 5-second animated clip
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  @click="generateVideo(parseInt(index))"
+                  :disabled="isGeneratingVideo || !hasCredits"
+                  class="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-2.5 text-sm font-medium text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)] hover:bg-[color-mix(in_oklch,var(--color-brand-500)_12%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <template v-if="isGeneratingVideo && selectedSourceIndex === parseInt(index)">
+                    <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" />
+                      <path d="M4 12a8 8 0 0 1 8-8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                    </svg>
+                    {{ videoProgress || 'Generating…' }}
+                  </template>
+                  <template v-else>
+                    Generate 5s video (1 credit)
+                  </template>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -682,7 +806,7 @@ import { useCreditStore } from '../stores/creditStore';
 import { useModals } from '../composables/useModals';
 import { usePlatform } from '../composables/usePlatform';
 import openRouterService from '../services/openRouterService';
-import geminiService from '../services/geminiService';
+import decartService from '../services/decartService';
 import GalleryService from '../services/galleryService';
 import CreditBalance from '../components/credits/CreditBalance.vue';
 
@@ -711,6 +835,12 @@ const errorMessage = ref('');
 const canUseOneTimeRetry = ref(false);
 const fullSizeImage = ref(null);
 const maxSourceImages = 5;
+
+// Video generation state
+const isGeneratingVideo = ref(false);
+const videoResults = ref({});
+const videoProgress = ref('');
+const videoRefs = ref({});
 
 const sourceImage = computed(() => {
   return sourceImages.value[selectedSourceIndex.value]?.preview || null;
@@ -764,8 +894,18 @@ const ctaSubtext = computed(() => {
 });
 
 const canGenerate = computed(() => {
-  if (!isAuthenticated.value) return false;
-  return hasImages.value && !isGenerating.value && hasCredits.value;
+  const result = isAuthenticated.value && hasImages.value && !isGenerating.value && hasCredits.value;
+  console.debug('[Generate Guard]', {
+    canGenerate: result,
+    isAuthenticated: isAuthenticated.value,
+    hasImages: hasImages.value,
+    sourceFile: !!sourceFile.value,
+    targetFile: !!targetFile.value,
+    isGenerating: isGenerating.value,
+    hasCredits: hasCredits.value,
+    credits: credits.value,
+  });
+  return result;
 });
 
 const ungeneratedCount = computed(() => {
@@ -867,7 +1007,12 @@ const removeTargetImage = () => {
 };
 
 const generateClothingMimic = async (isOneTimeRetry = false) => {
-  if (!canGenerate.value && !isOneTimeRetry) return;
+  console.log('[Generate] Called, canGenerate:', canGenerate.value, 'isOneTimeRetry:', isOneTimeRetry);
+  if (!canGenerate.value && !isOneTimeRetry) {
+    console.warn('[Generate] Blocked by guard — canGenerate is false');
+    return;
+  }
+  console.log('[Generate] Passed guard, proceeding…');
 
   if (!isAuthenticated.value) {
     appStore.addToast({
@@ -897,7 +1042,9 @@ const generateClothingMimic = async (isOneTimeRetry = false) => {
     
     // Only deduct credit if this is not a one-time retry
     if (!isOneTimeRetry) {
+      console.log('[Generate] Deducting credit…');
       const creditResult = await creditStore.useCredit(1, 'AI outfit generation');
+      console.log('[Generate] Credit result:', creditResult);
       if (!creditResult.success) {
         throw new Error(creditResult.error);
       }
@@ -907,11 +1054,16 @@ const generateClothingMimic = async (isOneTimeRetry = false) => {
     let result;
 
     try {
-      // Use OpenRouter service
+      console.log('[Generate] Calling Nano Banana (OpenRouter / Gemini) API…', {
+        sourceFile: sourceFile.value?.name,
+        targetFile: targetFile.value?.name,
+      });
+      // Use Nano Banana (Gemini 3 Pro Image Preview via OpenRouter) for image generation
       result = await openRouterService.generateClothingTransfer(
         sourceFile.value,
         targetFile.value
       );
+      console.log('[Generate] Nano Banana response:', result);
 
       if (result.success && result.imageUrl) {
         // Store result for current source image
@@ -1091,7 +1243,7 @@ const generateAllImages = async () => {
       let creditUsed = true;
 
       try {
-        // Generate for this source image
+        // Generate for this source image (Nano Banana / Gemini via OpenRouter)
         const result = await openRouterService.generateClothingTransfer(
           img.file,
           targetFile.value
@@ -1172,6 +1324,87 @@ const generateAllImages = async () => {
       title: 'Bulk generation failed',
       message: `Failed to generate any outfits. Please try again.`,
     });
+  }
+};
+
+const generateVideo = async (sourceIndex = null) => {
+  const idx = sourceIndex !== null ? sourceIndex : selectedSourceIndex.value;
+  const imageUrl = resultImages.value[idx];
+
+  if (!imageUrl) {
+    appStore.addToast({
+      type: 'error',
+      title: 'No image available',
+      message: 'Generate an outfit image first, then create a video from it.',
+    });
+    return;
+  }
+
+  if (!isAuthenticated.value) {
+    appStore.addToast({ type: 'error', title: 'Authentication required', message: 'Sign in to generate videos.' });
+    return;
+  }
+
+  if (!hasCredits.value) {
+    appStore.addToast({ type: 'error', title: 'No credits available', message: 'Top up your credits to generate video.' });
+    return;
+  }
+
+  isGeneratingVideo.value = true;
+  videoProgress.value = 'Submitting…';
+  errorMessage.value = '';
+
+  try {
+    // Deduct credit (video costs 1 credit)
+    console.log('[GenerateVideo] Deducting credit…');
+    const creditResult = await creditStore.useCredit(1, 'AI outfit video generation');
+    if (!creditResult.success) {
+      throw new Error(creditResult.error);
+    }
+    let creditUsed = true;
+
+    try {
+      console.log('[GenerateVideo] Calling Decart video API…');
+      const result = await decartService.generateVideoFromImage(imageUrl, {
+        onStatusChange: (status) => {
+          const statusMap = {
+            pending: 'Queued…',
+            processing: 'Generating video…',
+            completed: 'Downloading…',
+          };
+          videoProgress.value = statusMap[status.status] || status.status;
+        },
+      });
+
+      if (result.success && result.videoUrl) {
+        videoResults.value[idx] = result.videoUrl;
+        console.log('[GenerateVideo] Video ready:', result.videoUrl);
+
+        appStore.addToast({
+          type: 'success',
+          title: 'Video ready',
+          message: `Your outfit video is ready. ${credits.value} credits remaining.`,
+        });
+      } else {
+        if (creditUsed) {
+          await creditStore.addCredits(1, 'refunded', 'Refund for failed video generation');
+          creditUsed = false;
+        }
+        throw new Error(result.message || 'Video generation failed.');
+      }
+    } catch (apiError) {
+      if (creditUsed) {
+        await creditStore.addCredits(1, 'refunded', 'Refund for failed video API call');
+      }
+      throw apiError;
+    }
+  } catch (error) {
+    console.error('Error generating video:', error);
+    errorMessage.value = error.message;
+    appStore.addToast({ type: 'error', title: 'Video generation failed', message: error.message });
+  } finally {
+    isGeneratingVideo.value = false;
+    videoProgress.value = '';
   }
 };
 

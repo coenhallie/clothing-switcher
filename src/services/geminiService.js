@@ -41,6 +41,18 @@ class GeminiService {
         '../utils/imageUtils.js'
       );
 
+      // Get the original target (subject portrait) dimensions BEFORE optimization
+      const targetMetadata = await imageProcessor.getImageMetadata(targetImageFile);
+      const subjectWidth = targetMetadata.width;
+      const subjectHeight = targetMetadata.height;
+      const subjectAspectRatio = (subjectWidth / subjectHeight).toFixed(4);
+
+      console.log('Subject portrait original dimensions:', {
+        width: subjectWidth,
+        height: subjectHeight,
+        aspectRatio: subjectAspectRatio,
+      });
+
       const optimizedImages = await imageProcessor.optimizeForAI(
         sourceImageFile,
         targetImageFile,
@@ -51,6 +63,7 @@ class GeminiService {
           highQuality: true,
           maintainAspectRatio: true,
           disableOrientationCorrection: false,
+          preserveTargetDimensions: true,
         }
       );
 
@@ -65,22 +78,19 @@ class GeminiService {
         [sourceInlineData, targetInlineData].filter(Boolean)
       );
 
-      const prompt = `You will perform a virtual try-on.
+      const prompt = `You are an expert AI image generation system performing a clothing style transfer. You receive two images: a Subject Portrait and a Source Inspiration. Your task is to produce a single output image that is an exact pixel-for-pixel replica of the Subject Portrait in every respect except for the clothing worn by the person.
 
-The first image is the TARGET PERSON whose identity, body, pose, background, and lighting must remain intact.
-The second image is the REFERENCE CLOTHING that provides the outfit design to recreate.
+The Subject Portrait is the immutable base. The output image must match the Subject Portrait's exact dimensions (${optimizedImages.target.width}×${optimizedImages.target.height} pixels, aspect ratio ${subjectAspectRatio}), resolution, aspect ratio, orientation, and framing with zero deviation. The Source Inspiration's format, size, orientation, and composition are completely irrelevant to the output dimensions. You are only extracting clothing information from it, never layout or framing information.
 
-Generate a brand-new photorealistic photograph of the target person now wearing clothing that matches the reference image in style, color, texture, and accessories.
+Do not alter, reframe, crop, resize, pad, reposition, or re-render any aspect of the Subject Portrait other than the clothing. The person's face, facial expression, skin tone, skin texture, hair, hair color, hairstyle, body pose, body proportions, hand positions, jewelry, accessories, tattoos, background, lighting direction, lighting color temperature, shadow placement, depth of field, camera angle, and overall photographic style must remain identical to the Subject Portrait. The background must not shift, regenerate, or change in any way. The edges of the image must align exactly with the original Subject Portrait boundaries.
 
-STRICT REQUIREMENTS:
-- Do NOT copy or paste any pixels from the reference image. Synthesize the outfit so it naturally fits the target person's pose and proportions.
-- Maintain the target person's face, body shape, hair, and environment exactly as shown in their photo.
-- Recreate the clothing with realistic fabric behavior, shadows, and lighting consistent with the target photo.
-- If an exact match is impossible, produce the closest believable interpretation while respecting the above constraints.`;
+From the Source Inspiration image, extract only the clothing items, fabric textures, patterns, colors, garment structure, fit style, layering, and design details. Adapt and map these clothing attributes onto the subject's body as it appears in the Subject Portrait, respecting the subject's exact pose, body shape, and proportions. The clothing must conform naturally to the subject's posture and anatomy as shown, with realistic wrinkles, folds, draping, and shadow interaction that match the existing lighting conditions of the Subject Portrait. If parts of the source outfit are not visible or applicable given the subject's pose or crop, infer the most natural and coherent continuation of the garment style.
+
+The final output is the Subject Portrait with only the clothing replaced. Nothing else changes. Dimensions are preserved exactly. This is a non-negotiable constraint.`;
 
       const generationConfig = {
         maxOutputTokens: 20000,
-        temperature: options.temperature ?? 0.7,
+        temperature: options.temperature ?? 0.4,
       };
 
       const result = await this.model.generateContent({
@@ -90,11 +100,11 @@ STRICT REQUIREMENTS:
             parts: [
               { text: prompt },
               {
-                text: 'TARGET PERSON IMAGE (person who will wear the clothing):',
+                text: 'SUBJECT PORTRAIT (immutable base — preserve everything except clothing):',
               },
               targetPart,
               {
-                text: 'REFERENCE CLOTHING IMAGE (clothing style to recreate):',
+                text: 'SOURCE INSPIRATION (clothing reference to transfer onto the subject):',
               },
               sourcePart,
             ],

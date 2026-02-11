@@ -795,29 +795,43 @@ export class ImageProcessor {
     try {
       const maxWidth = options.maxWidth || 2048;
       const maxHeight = options.maxHeight || 2048;
+      const preserveTargetDimensions = options.preserveTargetDimensions || false;
 
-      const [sourceResult, targetResult] = await Promise.all([
-        this.processImageFile(sourceFile, maxWidth, maxHeight, {
-          aiProcessing: true,
-          targetType: 'clothing',
-          highQuality: true,
-          preserveQuality: true,
-          ...options,
-        }),
-        this.processImageFile(targetFile, maxWidth, maxHeight, {
-          aiProcessing: true,
-          targetType: 'person',
-          highQuality: true,
-          preserveQuality: true,
-          ...options,
-        }),
-      ]);
+      // Process target (subject portrait) FIRST so we know its dimensions
+      const targetResult = await this.processImageFile(targetFile, maxWidth, maxHeight, {
+        aiProcessing: true,
+        targetType: 'person',
+        highQuality: true,
+        preserveQuality: true,
+        ...options,
+      });
+
+      // Process source (clothing inspiration) — uses the same maxWidth/maxHeight
+      const sourceResult = await this.processImageFile(sourceFile, maxWidth, maxHeight, {
+        aiProcessing: true,
+        targetType: 'clothing',
+        highQuality: true,
+        preserveQuality: true,
+        ...options,
+      });
 
       // Analyze size compatibility
       const compatibility = this.analyzeSizeCompatibility(
         sourceResult.analysis,
         targetResult.analysis
       );
+
+      // When preserveTargetDimensions is set, the target (subject portrait) dimensions
+      // are sacrosanct. Only resize the source to stay within AI limits; never resize
+      // the target to match the source.
+      if (preserveTargetDimensions) {
+        return {
+          source: sourceResult,
+          target: targetResult,
+          compatibility,
+          recommendations: this.generateProcessingRecommendations(compatibility),
+        };
+      }
 
       // Apply size matching if needed and if maintainAspectRatio is not explicitly disabled
       const shouldMatchSizes =

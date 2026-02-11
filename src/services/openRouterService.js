@@ -34,7 +34,19 @@ class OpenRouterService {
         '../utils/imageUtils.js'
       );
 
-      // Optimize images for AI processing with size matching and quality preservation
+      // Get the original target (subject portrait) dimensions BEFORE any optimization
+      const targetMetadata = await imageProcessor.getImageMetadata(targetImageFile);
+      const subjectWidth = targetMetadata.width;
+      const subjectHeight = targetMetadata.height;
+      const subjectAspectRatio = (subjectWidth / subjectHeight).toFixed(4);
+
+      console.log('Subject portrait original dimensions:', {
+        width: subjectWidth,
+        height: subjectHeight,
+        aspectRatio: subjectAspectRatio,
+      });
+
+      // Optimize images for AI processing — preserve target quality as much as possible
       const optimizedImages = await imageProcessor.optimizeForAI(
         sourceImageFile,
         targetImageFile,
@@ -45,6 +57,7 @@ class OpenRouterService {
           highQuality: true,
           maintainAspectRatio: true,
           disableOrientationCorrection: false,
+          preserveTargetDimensions: true,
         }
       );
 
@@ -78,22 +91,21 @@ class OpenRouterService {
         optimizedImages.compatibility
       );
 
-      const prompt = `You will perform a photorealistic virtual try-on.
+      const prompt = `You are an expert AI image generation system performing a clothing style transfer. You receive two images: a Subject Portrait and a Source Inspiration. Your task is to produce a single output image that is an exact pixel-for-pixel replica of the Subject Portrait in every respect except for the clothing worn by the person.
 
-The first image you receive is the TARGET PERSON. Preserve their face, body, pose, background, and lighting exactly as seen.
-The second image you receive is the REFERENCE CLOTHING. Use it only as inspiration to recreate the outfit.
+The Subject Portrait is the immutable base. The output image must match the Subject Portrait's exact dimensions (${optimizedImages.target.width}×${optimizedImages.target.height} pixels, aspect ratio ${subjectAspectRatio}), resolution, aspect ratio, orientation, and framing with zero deviation. The Source Inspiration's format, size, orientation, and composition are completely irrelevant to the output dimensions. You are only extracting clothing information from it, never layout or framing information.
 
-Strict requirements:
-- Synthesize new clothing on the target person that closely matches the reference style, colors, textures, accessories, and overall aesthetic.
-- Do NOT copy, paste, or return the original clothing image. Create a new rendering that fits the target person's pose and proportions naturally.
-- Keep the target person's identity, anatomy, hair, and environment untouched.
-- Ensure fabrics, shadows, and lighting match the target photo for realism.
-- If an exact match is impossible, provide the closest believable recreation while respecting these rules.
+Do not alter, reframe, crop, resize, pad, reposition, or re-render any aspect of the Subject Portrait other than the clothing. The person's face, facial expression, skin tone, skin texture, hair, hair color, hairstyle, body pose, body proportions, hand positions, jewelry, accessories, tattoos, background, lighting direction, lighting color temperature, shadow placement, depth of field, camera angle, and overall photographic style must remain identical to the Subject Portrait. The background must not shift, regenerate, or change in any way. The edges of the image must align exactly with the original Subject Portrait boundaries.
+
+From the Source Inspiration image, extract only the clothing items, fabric textures, patterns, colors, garment structure, fit style, layering, and design details. Adapt and map these clothing attributes onto the subject's body as it appears in the Subject Portrait, respecting the subject's exact pose, body shape, and proportions. The clothing must conform naturally to the subject's posture and anatomy as shown, with realistic wrinkles, folds, draping, and shadow interaction that match the existing lighting conditions of the Subject Portrait. If parts of the source outfit are not visible or applicable given the subject's pose or crop, infer the most natural and coherent continuation of the garment style.
+
+The final output is the Subject Portrait with only the clothing replaced. Nothing else changes. Dimensions are preserved exactly. This is a non-negotiable constraint.
 
 ${compatibilityInfo}`;
 
       const payload = {
         model: 'google/gemini-3-pro-image-preview',
+        modalities: ['text', 'image'],
         messages: [
           {
             role: 'user',
@@ -104,7 +116,7 @@ ${compatibilityInfo}`;
               },
               {
                 type: 'text',
-                text: 'TARGET PERSON IMAGE (person who will wear the clothing):',
+                text: 'SUBJECT PORTRAIT (immutable base — preserve everything except clothing):',
               },
               {
                 type: 'image_url',
@@ -114,7 +126,7 @@ ${compatibilityInfo}`;
               },
               {
                 type: 'text',
-                text: 'REFERENCE CLOTHING IMAGE (style to recreate on the target person):',
+                text: 'SOURCE INSPIRATION (clothing reference to transfer onto the subject):',
               },
               {
                 type: 'image_url',
@@ -126,179 +138,245 @@ ${compatibilityInfo}`;
           },
         ],
         max_tokens: 20000,
-        temperature: 0.7,
+        temperature: 0.4,
         stream: false,
       };
 
-      const response = await fetch(`${this.baseURL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Clothing Switcher App',
-        },
-        body: JSON.stringify(payload),
-      });
+      // Retry loop for empty/failed Gemini responses
+      const MAX_RETRIES = 2;
+      let lastResult = null;
+      let returnedOriginalImage = false;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          `OpenRouter API error: ${
-            errorData.error?.message || response.statusText
-          }`
-        );
-      }
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        if (attempt > 0) {
+          console.log(`Retrying image generation (attempt ${attempt + 1}/${MAX_RETRIES + 1})...`);
+          // Brief delay before retry to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
 
-      const result = await response.json();
-      const choice = result.choices && result.choices[0];
+        const response = await fetch(`${this.baseURL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'Clothing Switcher App',
+          },
+          body: JSON.stringify(payload),
+        });
 
-      if (choice?.native_finish_reason === 'IMAGE_SAFETY') {
-        throw new Error(
-          'Generation blocked by Gemini safety filters. Try different or less revealing source images.'
-        );
-      }
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            `OpenRouter API error: ${
+              errorData.error?.message || response.statusText
+            }`
+          );
+        }
 
-      if (
-        choice?.finish_reason?.toUpperCase?.() === 'SAFETY' ||
-        choice?.finish_reason === 'SAFETY'
-      ) {
-        throw new Error(
-          'Generation blocked by Gemini safety filters. Try adjusting your images and retry.'
-        );
-      }
+        const result = await response.json();
+        lastResult = result;
+        const choice = result.choices && result.choices[0];
 
-      // Extract generated image from response - Gemini 2.5 Flash Image Preview format
-      if (choice?.message) {
-        const message = choice.message;
+        if (choice?.native_finish_reason === 'IMAGE_SAFETY') {
+          throw new Error(
+            'Generation blocked by Gemini safety filters. Try different or less revealing source images.'
+          );
+        }
 
-        // Check for inline data (Gemini format)
-        if (message.content && message.content.parts) {
-          for (const part of message.content.parts) {
-            if (part.inline_data && part.inline_data.data) {
-              // Check for exact match (AI returned original image unchanged)
-              if (originalInlineData.has(part.inline_data.data)) {
-                console.warn('Skipping original image returned by AI (exact match)');
-                continue;
-              }
-              
-              // Check for near-identical match (AI returned minimally modified original)
-              // Compare first 100 chars and last 100 chars of base64 as a quick similarity check
-              const imageData = part.inline_data.data;
-              let isSimilarToOriginal = false;
-              
-              for (const originalData of [sourceBase64, targetBase64]) {
-                if (imageData.length > 200 && originalData.length > 200) {
-                  const dataPrefix = imageData.substring(0, 100);
-                  const dataSuffix = imageData.substring(imageData.length - 100);
-                  const origPrefix = originalData.substring(0, 100);
-                  const origSuffix = originalData.substring(originalData.length - 100);
-                  
-                  // If both prefix and suffix match, it's likely the same image
-                  if (dataPrefix === origPrefix && dataSuffix === origSuffix) {
-                    isSimilarToOriginal = true;
-                    console.warn('Skipping near-identical image returned by AI (similarity match)');
-                    break;
+        if (
+          choice?.finish_reason?.toUpperCase?.() === 'SAFETY' ||
+          choice?.finish_reason === 'SAFETY'
+        ) {
+          throw new Error(
+            'Generation blocked by Gemini safety filters. Try adjusting your images and retry.'
+          );
+        }
+
+        // Early check: detect empty response (Gemini returned no content at all)
+        const messageContent = choice?.message?.content;
+        const completionTokens = result.usage?.completion_tokens || 0;
+        
+        if (
+          (!messageContent || messageContent === '') &&
+          completionTokens === 0
+        ) {
+          console.warn(
+            `Empty response from Gemini (attempt ${attempt + 1}/${MAX_RETRIES + 1}): content is empty with 0 completion tokens`
+          );
+          // Retry on empty response - this is a transient Gemini issue
+          if (attempt < MAX_RETRIES) {
+            continue;
+          }
+          // All retries exhausted for empty response
+          console.error(
+            'All retries exhausted - Gemini consistently returned empty responses:',
+            JSON.stringify(result, null, 2)
+          );
+          return {
+            success: false,
+            error: 'NO_IMAGE_GENERATED',
+            message:
+              'The AI model returned an empty response without generating an image. This is a temporary issue with the AI provider - please try again in a moment.',
+            timestamp: new Date().toISOString(),
+          };
+        }
+
+        // Extract generated image from response - Gemini image format
+        if (choice?.message) {
+          const message = choice.message;
+
+          // Check for inline data (Gemini format)
+          if (message.content && message.content.parts) {
+            for (const part of message.content.parts) {
+              if (part.inline_data && part.inline_data.data) {
+                // Check for exact match (AI returned original image unchanged)
+                if (originalInlineData.has(part.inline_data.data)) {
+                  console.warn('Skipping original image returned by AI (exact match)');
+                  continue;
+                }
+                
+                // Check for near-identical match (AI returned minimally modified original)
+                // Compare first 100 chars and last 100 chars of base64 as a quick similarity check
+                const imageData = part.inline_data.data;
+                let isSimilarToOriginal = false;
+                
+                for (const originalData of [sourceBase64, targetBase64]) {
+                  if (imageData.length > 200 && originalData.length > 200) {
+                    const dataPrefix = imageData.substring(0, 100);
+                    const dataSuffix = imageData.substring(imageData.length - 100);
+                    const origPrefix = originalData.substring(0, 100);
+                    const origSuffix = originalData.substring(originalData.length - 100);
+                    
+                    // If both prefix and suffix match, it's likely the same image
+                    if (dataPrefix === origPrefix && dataSuffix === origSuffix) {
+                      isSimilarToOriginal = true;
+                      console.warn('Skipping near-identical image returned by AI (similarity match)');
+                      break;
+                    }
                   }
                 }
+                
+                if (isSimilarToOriginal) {
+                  returnedOriginalImage = true;
+                  continue;
+                }
+                
+                // Convert base64 data to data URL
+                const mimeType = part.inline_data.mime_type || 'image/png';
+                const dataUrl = `data:${mimeType};base64,${part.inline_data.data}`;
+
+                return {
+                  success: true,
+                  imageUrl: dataUrl,
+                  description: 'Clothing transfer completed successfully',
+                  timestamp: new Date().toISOString(),
+                };
               }
-              
-              if (isSimilarToOriginal) {
+            }
+          }
+
+          // Fallback: check for direct content parts (alternative format)
+          if (message.content && Array.isArray(message.content)) {
+            for (const part of message.content) {
+              if (part.inline_data && part.inline_data.data) {
+                // Check for exact match
+                if (originalInlineData.has(part.inline_data.data)) {
+                  console.warn('Skipping original image returned by AI (exact match)');
+                  continue;
+                }
+                
+                // Check for near-identical match
+                const imageData = part.inline_data.data;
+                let isSimilarToOriginal = false;
+                
+                for (const originalData of [sourceBase64, targetBase64]) {
+                  if (imageData.length > 200 && originalData.length > 200) {
+                    const dataPrefix = imageData.substring(0, 100);
+                    const dataSuffix = imageData.substring(imageData.length - 100);
+                    const origPrefix = originalData.substring(0, 100);
+                    const origSuffix = originalData.substring(originalData.length - 100);
+                    
+                    if (dataPrefix === origPrefix && dataSuffix === origSuffix) {
+                      isSimilarToOriginal = true;
+                      console.warn('Skipping near-identical image returned by AI (similarity match)');
+                      break;
+                    }
+                  }
+                }
+                
+                if (isSimilarToOriginal) {
+                  returnedOriginalImage = true;
+                  continue;
+                }
+                
+                const mimeType = part.inline_data.mime_type || 'image/png';
+                const dataUrl = `data:${mimeType};base64,${part.inline_data.data}`;
+
+                return {
+                  success: true,
+                  imageUrl: dataUrl,
+                  description: 'Clothing transfer completed successfully',
+                  timestamp: new Date().toISOString(),
+                };
+              }
+            }
+          }
+
+          // Legacy format check (for backwards compatibility)
+          if (message.images && message.images.length > 0) {
+            for (const img of message.images) {
+              const url = img?.image_url?.url;
+              if (!url) continue;
+              if (originalImageUrls.has(url)) {
+                console.warn('Skipping original image URL returned by AI');
+                returnedOriginalImage = true;
                 continue;
               }
-              
-              // Convert base64 data to data URL
-              const mimeType = part.inline_data.mime_type || 'image/png';
-              const dataUrl = `data:${mimeType};base64,${part.inline_data.data}`;
 
               return {
                 success: true,
-                imageUrl: dataUrl,
-                description: 'Clothing transfer completed successfully',
+                imageUrl: url,
+                description: message.content || 'Clothing transfer completed',
                 timestamp: new Date().toISOString(),
               };
             }
           }
         }
 
-        // Fallback: check for direct content parts (alternative format)
-        if (message.content && Array.isArray(message.content)) {
-          for (const part of message.content) {
-            if (part.inline_data && part.inline_data.data) {
-              // Check for exact match
-              if (originalInlineData.has(part.inline_data.data)) {
-                console.warn('Skipping original image returned by AI (exact match)');
-                continue;
-              }
-              
-              // Check for near-identical match
-              const imageData = part.inline_data.data;
-              let isSimilarToOriginal = false;
-              
-              for (const originalData of [sourceBase64, targetBase64]) {
-                if (imageData.length > 200 && originalData.length > 200) {
-                  const dataPrefix = imageData.substring(0, 100);
-                  const dataSuffix = imageData.substring(imageData.length - 100);
-                  const origPrefix = originalData.substring(0, 100);
-                  const origSuffix = originalData.substring(originalData.length - 100);
-                  
-                  if (dataPrefix === origPrefix && dataSuffix === origSuffix) {
-                    isSimilarToOriginal = true;
-                    console.warn('Skipping near-identical image returned by AI (similarity match)');
-                    break;
-                  }
-                }
-              }
-              
-              if (isSimilarToOriginal) {
-                continue;
-              }
-              
-              const mimeType = part.inline_data.mime_type || 'image/png';
-              const dataUrl = `data:${mimeType};base64,${part.inline_data.data}`;
-
-              return {
-                success: true,
-                imageUrl: dataUrl,
-                description: 'Clothing transfer completed successfully',
-                timestamp: new Date().toISOString(),
-              };
-            }
-          }
+        // If the AI returned an original/near-identical image, retry
+        if (returnedOriginalImage && attempt < MAX_RETRIES) {
+          console.warn(`AI returned original image on attempt ${attempt + 1}, retrying...`);
+          returnedOriginalImage = false;
+          continue;
         }
 
-        // Legacy format check (for backwards compatibility)
-        if (message.images && message.images.length > 0) {
-          for (const img of message.images) {
-            const url = img?.image_url?.url;
-            if (!url) continue;
-            if (originalImageUrls.has(url)) {
-              console.warn('Skipping original image URL returned by AI');
-              continue;
-            }
-
-            return {
-              success: true,
-              imageUrl: url,
-              description: message.content || 'Clothing transfer completed',
-              timestamp: new Date().toISOString(),
-            };
-          }
-        }
+        // No image found in this attempt and no more retries
+        break;
       }
 
       // Log the actual response structure for debugging
       console.error(
         'No valid generated image found in response:',
-        JSON.stringify(result, null, 2)
+        JSON.stringify(lastResult, null, 2)
       );
 
-      // Return a specific error indicating no image was generated
+      // Return specific error based on failure type
+      if (returnedOriginalImage) {
+        return {
+          success: false,
+          error: 'NO_IMAGE_GENERATED',
+          message:
+            'The AI returned an identical or near-identical image instead of generating a new one. This can happen occasionally - use the retry button to try again without being charged.',
+          timestamp: new Date().toISOString(),
+        };
+      }
+
       return {
         success: false,
         error: 'NO_IMAGE_GENERATED',
         message:
-          'The AI returned an identical or near-identical image instead of generating a new one. This can happen occasionally - use the retry button to try again without being charged.',
+          'The AI model failed to generate an image. This can happen occasionally due to model limitations - please try again.',
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
