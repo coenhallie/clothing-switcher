@@ -158,7 +158,7 @@ export const useAuthStore = defineStore('auth', () => {
           if (retryResult.success) {
             logger.debug('Retry successful, setting user and profile');
             setUser(retryResult.user);
-            setProfile(retryResult.user);
+            setProfile(retryResult.profile || retryResult.user);
             
             // Clear logout flag on successful retry
             clearLogoutFlag();
@@ -167,7 +167,7 @@ export const useAuthStore = defineStore('auth', () => {
             return {
               success: true,
               user: retryResult.user,
-              profile: retryResult.user,
+              profile: retryResult.profile || retryResult.user,
             };
           } else {
             logger.warn('Retry also failed:', retryResult.error);
@@ -685,39 +685,6 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   /**
-   * Logout specifically for app close events
-   * Ensures thorough cleanup without navigation
-   */
-  const logoutOnClose = async () => {
-    logger.info('Executing logout-on-close...');
-    
-    // Clear all auth data
-    const result = await clearAllAuthData();
-    
-    if (result.success) {
-      logger.info('Logout-on-close completed successfully');
-    } else {
-      logger.error('Logout-on-close failed:', result.error);
-    }
-    
-    return result;
-  };
-
-  /**
-   * Check if app should require authentication on startup
-   * Returns true if user needs to re-authenticate
-   */
-  const shouldRequireAuth = () => {
-    try {
-      const logoutFlag = localStorage.getItem(STORAGE_KEYS.LOGOUT_FLAG);
-      return logoutFlag === 'true';
-    } catch (error) {
-      logger.warn('Failed to check logout flag:', error);
-      return false;
-    }
-  };
-
-  /**
    * Clear the logout flag after successful authentication
    */
   const clearLogoutFlag = () => {
@@ -762,10 +729,6 @@ export const useAuthStore = defineStore('auth', () => {
     clearCorruptedSession,
     clearAllAuthData,
     validateExistingSession,
-    
-    // Logout-on-close specific
-    logoutOnClose,
-    shouldRequireAuth,
     clearLogoutFlag,
   };
 });

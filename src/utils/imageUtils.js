@@ -671,10 +671,12 @@ export class ImageProcessor {
         ...analysis.recommendations,
       });
 
-      // Always use maximum quality (100%)
+      // Use JPEG for AI processing (much smaller payload, better API compatibility)
+      // Use PNG only when explicitly needed for non-AI use cases
       const useHighQuality = options.highQuality || options.preserveQuality;
-      const format = useHighQuality ? 'image/png' : 'image/jpeg';
-      const quality = 1.0; // Always use 100% quality
+      const isForAI = options.aiProcessing || false;
+      const format = isForAI ? 'image/jpeg' : (useHighQuality ? 'image/png' : 'image/jpeg');
+      const quality = isForAI ? 0.92 : 1.0; // High but not max quality for AI to reduce payload
 
       const result = {
         canvas: resizedCanvas,

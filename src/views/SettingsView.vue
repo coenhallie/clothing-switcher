@@ -1,283 +1,228 @@
 <template>
-  <div class="flex flex-col gap-10">
-    <!-- Mobile-only simple title -->
-    <div class="mobile-title">
-      <h1>Settings</h1>
+  <div class="settings-view">
+    <!-- Header -->
+    <div>
+      <h1 class="text-xl font-semibold text-[var(--color-card-foreground)] tracking-tight">Settings</h1>
+      <p class="text-xs text-[var(--color-muted-foreground)] mt-0.5">Preferences and account management.</p>
     </div>
 
-    <section
-      class="hero-section relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-surface)_85%,transparent)] px-8 py-10 shadow-soft"
-    >
-      <div
-        class="pointer-events-none absolute -right-10 -top-24 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/30 via-purple-400/25 to-sky-300/20 blur-3xl"
-      ></div>
-      <div
-        class="pointer-events-none absolute -left-16 bottom-[-120px] h-72 w-72 rounded-full bg-gradient-to-tr from-sky-400/25 via-emerald-400/15 to-indigo-300/10 blur-3xl"
-      ></div>
-
-      <div
-        class="flex flex-col gap-8 md:flex-row md:items-start md:justify-between"
-      >
-        <div class="max-w-2xl space-y-5">
-          <div
-            class="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_oklch,var(--color-brand-500)_25%,transparent)] bg-[color-mix(in_oklch,var(--color-brand-500)_12%,transparent)] px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-[var(--color-brand-600)]"
-          >
-            Studio Preferences
-          </div>
-          <div class="space-y-3">
-            <h1
-              class="text-balance text-4xl font-semibold leading-tight text-[var(--color-card-foreground)] sm:text-5xl"
-            >
-              Fine-tune SwitchFit Studio to match your creative flow.
-            </h1>
-            <p
-              class="text-lg leading-relaxed text-[var(--color-muted-foreground)]"
-            >
-              Manage your privacy preferences and account settings — all with
-              the same polished visual language as the rest of the application.
-            </p>
-          </div>
+    <div class="settings-layout">
+      <!-- Privacy & Data -->
+      <div class="settings-card">
+        <div class="settings-card__header">
+          <h2 class="settings-card__title">Privacy & data</h2>
+          <p class="settings-card__desc">Control storage and history settings.</p>
         </div>
 
-        <div
-          class="flex flex-col gap-4 rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_38%,transparent)]/70 p-6 shadow-border"
-        >
-          <h2
-            class="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-muted-foreground)]"
-          >
-            Current status
-          </h2>
-          <div class="space-y-3 text-sm">
-            <div class="flex items-center justify-between gap-3">
-              <span class="text-[var(--color-muted-foreground)]"
-                >AI Service</span
-              >
-              <span
-                class="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_oklch,var(--color-success-500)_32%,transparent)] bg-[color-mix(in_oklch,var(--color-success-500)_12%,transparent)] px-3 py-1 text-xs font-semibold text-[color-mix(in_oklch,var(--color-success-500)_80%,transparent)]"
-              >
-                <span
-                  class="h-2 w-2 rounded-full bg-[var(--color-success-500)]"
-                ></span>
-                Ready
-              </span>
+        <div class="settings-card__body">
+          <!-- Storage - Mobile Only -->
+          <label v-if="isTauriMobile" class="settings-toggle">
+            <input id="use-local-storage" v-model="settings.useLocalStorage" type="checkbox" class="settings-toggle__input" />
+            <div>
+              <p class="settings-toggle__label">Local device storage</p>
+              <p class="settings-toggle__desc">Save images on your device for offline access.</p>
             </div>
+          </label>
+
+          <!-- Cloud Storage - Web Only -->
+          <label v-if="!isTauriMobile && isAuthenticated" class="settings-toggle">
+            <input id="save-to-supabase" v-model="settings.saveToSupabase" type="checkbox" class="settings-toggle__input" />
+            <div>
+              <p class="settings-toggle__label">Cloud storage</p>
+              <p class="settings-toggle__desc">Sync images across devices via Supabase.</p>
+            </div>
+          </label>
+
+          <!-- History Toggle -->
+          <label class="settings-toggle">
+            <input id="save-history" v-model="settings.saveHistory" type="checkbox" class="settings-toggle__input" />
+            <div>
+              <p class="settings-toggle__label">Save try-on history</p>
+              <p class="settings-toggle__desc">Keep recent generations in your browser.</p>
+            </div>
+          </label>
+
+          <!-- Auto-delete -->
+          <div class="settings-field">
+            <label for="auto-delete" class="settings-toggle__label">Auto-delete after</label>
+            <select
+              id="auto-delete"
+              v-model="settings.autoDeleteDays"
+              :disabled="!settings.saveHistory"
+              class="settings-select"
+            >
+              <option value="7">7 days</option>
+              <option value="30">30 days</option>
+              <option value="90">90 days</option>
+              <option value="0">Never</option>
+            </select>
+          </div>
+
+          <!-- Danger zone -->
+          <div class="settings-danger">
+            <div>
+              <p class="text-xs font-medium text-[var(--color-destructive-500)]">Clear all local data</p>
+              <p class="text-[11px] text-[var(--color-destructive-500)] opacity-70">Removes settings, history, and cached data.</p>
+            </div>
+            <button type="button" @click="clearAllData" class="settings-danger__btn">
+              Clear data
+            </button>
           </div>
         </div>
       </div>
-    </section>
 
-    <section class="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-      <div class="space-y-6">
-        <div
-          class="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-soft"
-        >
-          <header class="space-y-1.5">
-            <h2
-              class="text-xl font-semibold text-[var(--color-card-foreground)]"
-            >
-              Privacy & data handling
-            </h2>
-            <p
-              class="text-sm leading-relaxed text-[var(--color-muted-foreground)]"
-            >
-              Control how SwitchFit stores try-on history and when it should
-              expire from your device.
-            </p>
-          </header>
-
-          <div class="mt-6 space-y-5">
-            <!-- Storage Location Toggle (Mobile Only) -->
-            <label
-              v-if="isTauriMobile"
-              class="flex items-start gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/40 px-4 py-3 text-sm text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)]"
-            >
-              <input
-                id="use-local-storage"
-                v-model="settings.useLocalStorage"
-                type="checkbox"
-                class="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-brand-500)] focus:ring-[var(--color-brand-500)]"
-              />
-              <div>
-                <p class="font-semibold">Use local device storage</p>
-                <p class="text-xs text-[var(--color-muted-foreground)]">
-                  Save generated images directly on your device for offline access and privacy. When disabled, images are stored in the cloud (requires internet).
-                </p>
-              </div>
-            </label>
-
-            <!-- Supabase Storage Toggle (Website Only) -->
-            <label
-              v-if="!isTauriMobile && isAuthenticated"
-              class="flex items-start gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/40 px-4 py-3 text-sm text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)]"
-            >
-              <input
-                id="save-to-supabase"
-                v-model="settings.saveToSupabase"
-                type="checkbox"
-                class="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-brand-500)] focus:ring-[var(--color-brand-500)]"
-              />
-              <div>
-                <p class="font-semibold">Save images to cloud storage</p>
-                <p class="text-xs text-[var(--color-muted-foreground)]">
-                  Store generated images in Supabase for access across devices. When disabled, images are saved locally in your browser (IndexedDB).
-                </p>
-              </div>
-            </label>
-
-            <label
-              class="flex items-start gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/40 px-4 py-3 text-sm text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)]"
-            >
-              <input
-                id="save-history"
-                v-model="settings.saveHistory"
-                type="checkbox"
-                class="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-brand-500)] focus:ring-[var(--color-brand-500)]"
-              />
-              <div>
-                <p class="font-semibold">Save try-on history locally</p>
-                <p class="text-xs text-[var(--color-muted-foreground)]">
-                  Keep a rotating library of recently generated outfits directly
-                  in your browser.
-                </p>
-              </div>
-            </label>
-
-            <div class="space-y-2">
-              <label
-                for="auto-delete"
-                class="text-sm font-semibold text-[var(--color-card-foreground)]"
-              >
-                Auto-delete history after
-              </label>
-              <select
-                id="auto-delete"
-                v-model="settings.autoDeleteDays"
-                :disabled="!settings.saveHistory"
-                class="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-medium text-[var(--color-card-foreground)] transition focus:border-[var(--color-brand-500)] focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <option value="7">7 days</option>
-                <option value="30">30 days</option>
-                <option value="90">90 days</option>
-                <option value="0">Never</option>
-              </select>
-              <p class="text-xs text-[var(--color-muted-foreground)]">
-                Set to “Never” to retain the full archive or shorten the window
-                for added privacy.
-              </p>
+      <div class="settings-sidebar">
+          <!-- AI Provider -->
+          <div class="settings-card">
+            <div class="settings-card__header">
+              <h2 class="settings-card__title">AI provider</h2>
+              <p class="settings-card__desc">Choose which backend processes image generation.</p>
             </div>
-
-            <div
-              class="rounded-2xl border border-dashed border-[color-mix(in_oklch,var(--color-destructive-500)_40%,transparent)] bg-[color-mix(in_oklch,var(--color-destructive-500)_12%,transparent)]/60 px-4 py-4"
-            >
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="space-y-1">
-                  <p
-                    class="text-sm font-semibold text-[var(--color-destructive-500)]"
-                  >
-                    Reset local studio data
-                  </p>
-                  <p class="text-xs text-[var(--color-destructive-500)]/80">
-                    Clears settings, saved try-ons, and cached API credentials
-                    from this device.
+            <div class="settings-card__body">
+              <label
+                class="settings-toggle"
+                :class="{ 'settings-toggle--active': settings.aiProvider === 'openrouter' }"
+              >
+                <input
+                  type="radio"
+                  name="ai-provider"
+                  value="openrouter"
+                  v-model="settings.aiProvider"
+                  class="settings-toggle__input"
+                />
+                <div>
+                  <p class="settings-toggle__label">OpenRouter</p>
+                  <p class="settings-toggle__desc">
+                    Routes through OpenRouter to Gemini.
+                    <span v-if="!openrouterAvailable" class="text-[var(--color-destructive-500)]"> (no API key)</span>
                   </p>
                 </div>
-                <button
-                  type="button"
-                  @click="clearAllData"
-                  class="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_oklch,var(--color-destructive-500)_60%,transparent)] bg-[color-mix(in_oklch,var(--color-destructive-500)_16%,transparent)] px-4 py-2 text-xs font-semibold text-[var(--color-destructive-500)] transition hover:opacity-90"
-                >
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="M6 6h12m-9 3v8m6-8v8M10 6l1-2h2l1 2"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                  Clear all data
-                </button>
-              </div>
+              </label>
+  
+              <label
+                class="settings-toggle"
+                :class="{ 'settings-toggle--active': settings.aiProvider === 'gemini' }"
+              >
+                <input
+                  type="radio"
+                  name="ai-provider"
+                  value="gemini"
+                  v-model="settings.aiProvider"
+                  class="settings-toggle__input"
+                />
+                <div>
+                  <p class="settings-toggle__label">Google AI (direct)</p>
+                  <p class="settings-toggle__desc">
+                    Calls Gemini API directly with your Google AI key.
+                    <span v-if="!geminiAvailable" class="text-[var(--color-destructive-500)]"> (no API key)</span>
+                  </p>
+                </div>
+              </label>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="space-y-6">
-        <!-- User Profile Section -->
-        <div
-          v-if="isAuthenticated"
-          class="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-soft"
-        >
-          <h2 class="text-xl font-semibold text-[var(--color-card-foreground)]">
-            Account
-          </h2>
-          <div
-            class="mt-5 space-y-4 text-sm text-[var(--color-muted-foreground)]"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <span class="font-semibold text-[var(--color-card-foreground)]"
-                >Name</span
-              >
-              <span>{{ userDisplayName }}</span>
+          <!-- API Keys -->
+          <div class="settings-card">
+            <div class="settings-card__header">
+              <h2 class="settings-card__title">API keys</h2>
+              <p class="settings-card__desc">Add your own API keys so image generation works after deployment. Keys are stored locally in your browser.</p>
             </div>
-            <div class="flex items-start justify-between gap-3">
-              <span class="font-semibold text-[var(--color-card-foreground)]"
-                >Email</span
-              >
-              <span class="text-right">{{ userEmail }}</span>
+            <div class="settings-card__body">
+              <!-- Gemini API Key -->
+              <div class="settings-field">
+                <label for="gemini-api-key" class="settings-toggle__label">Gemini API key</label>
+                <p class="settings-toggle__desc" style="margin-bottom: 0.25rem;">
+                  Get yours at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="settings-link">Google AI Studio</a>
+                </p>
+                <div class="settings-key-input">
+                  <input
+                    id="gemini-api-key"
+                    :type="showGeminiKey ? 'text' : 'password'"
+                    v-model="apiKeys.gemini"
+                    placeholder="AIza..."
+                    autocomplete="off"
+                    spellcheck="false"
+                    class="settings-input"
+                  />
+                  <button type="button" @click="showGeminiKey = !showGeminiKey" class="settings-key-toggle" :title="showGeminiKey ? 'Hide key' : 'Show key'">
+                    <svg v-if="!showGeminiKey" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/></svg>
+                    <svg v-else class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  </button>
+                </div>
+                <p v-if="apiKeys.gemini" class="settings-key-status settings-key-status--set">
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Key set
+                </p>
+              </div>
+
+              <!-- OpenRouter API Key -->
+              <div class="settings-field">
+                <label for="openrouter-api-key" class="settings-toggle__label">OpenRouter API key</label>
+                <p class="settings-toggle__desc" style="margin-bottom: 0.25rem;">
+                  Get yours at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" class="settings-link">openrouter.ai/keys</a>
+                </p>
+                <div class="settings-key-input">
+                  <input
+                    id="openrouter-api-key"
+                    :type="showOpenRouterKey ? 'text' : 'password'"
+                    v-model="apiKeys.openrouter"
+                    placeholder="sk-or-v1-..."
+                    autocomplete="off"
+                    spellcheck="false"
+                    class="settings-input"
+                  />
+                  <button type="button" @click="showOpenRouterKey = !showOpenRouterKey" class="settings-key-toggle" :title="showOpenRouterKey ? 'Hide key' : 'Show key'">
+                    <svg v-if="!showOpenRouterKey" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/></svg>
+                    <svg v-else class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  </button>
+                </div>
+                <p v-if="apiKeys.openrouter" class="settings-key-status settings-key-status--set">
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Key set
+                </p>
+              </div>
+
+              <p class="text-[11px] text-[var(--color-muted-foreground)] leading-relaxed">
+                <svg class="w-3 h-3 inline-block mr-0.5 -mt-px" fill="none" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                Keys are stored only in your browser's local storage and never sent to our servers.
+              </p>
             </div>
           </div>
-          
-          <!-- Sign Out Button -->
-          <div class="mt-6 pt-6 border-t border-[var(--color-border)]">
-            <button
-              @click="handleSignOut"
-              type="button"
-              class="w-full inline-flex items-center justify-center gap-2 rounded-full border border-[color-mix(in_oklch,var(--color-destructive-500)_60%,transparent)] bg-[color-mix(in_oklch,var(--color-destructive-500)_12%,transparent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-destructive-500)] transition hover:bg-[color-mix(in_oklch,var(--color-destructive-500)_20%,transparent)]"
-            >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <path
-                  d="M9 6 5 6 5 18 9 18"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                />
-                <path
-                  d="M13 12h8m0 0-3-3m3 3-3 3"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
+  
+          <!-- Account -->
+          <div v-if="isAuthenticated" class="settings-card">
+          <div class="settings-card__header">
+            <h2 class="settings-card__title">Account</h2>
+          </div>
+          <div class="settings-card__body">
+            <div class="settings-info-row">
+              <span class="text-xs text-[var(--color-muted-foreground)]">Name</span>
+              <span class="text-xs font-medium text-[var(--color-card-foreground)]">{{ userDisplayName }}</span>
+            </div>
+            <div class="settings-info-row">
+              <span class="text-xs text-[var(--color-muted-foreground)]">Email</span>
+              <span class="text-xs font-medium text-[var(--color-card-foreground)] text-right">{{ userEmail }}</span>
+            </div>
+            <button @click="handleSignOut" type="button" class="settings-signout-btn">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                <path d="M9 6 5 6 5 18 9 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                <path d="M13 12h8m0 0-3-3m3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              Sign Out
+              Sign out
             </button>
           </div>
         </div>
 
-        <!-- Biometric Authentication Section (Mobile Only) -->
-        <div
-          v-if="isMobile && isAuthenticated"
-          class="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-soft"
-        >
-          <header class="space-y-1.5">
-            <h2
-              class="text-xl font-semibold text-[var(--color-card-foreground)]"
-            >
-              Biometric Authentication
-            </h2>
-            <p
-              class="text-sm leading-relaxed text-[var(--color-muted-foreground)]"
-            >
-              Use fingerprint or face recognition to sign in quickly and securely.
-            </p>
-          </header>
-
-          <div class="mt-6 space-y-5">
+        <!-- Biometric - Mobile Only -->
+        <div v-if="isMobile && isAuthenticated" class="settings-card">
+          <div class="settings-card__header">
+            <h2 class="settings-card__title">Biometrics</h2>
+            <p class="settings-card__desc">Use fingerprint or face recognition to sign in.</p>
+          </div>
+          <div class="settings-card__body">
             <label
-              class="flex items-start gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/40 px-4 py-3 text-sm text-[var(--color-card-foreground)] transition hover:border-[var(--color-brand-500)] cursor-pointer"
-              :class="{ 'opacity-50 cursor-not-allowed': !biometricAvailable || isTogglingBiometric }"
+              class="settings-toggle"
+              :class="{ 'opacity-50 pointer-events-none': !biometricAvailable || isTogglingBiometric }"
             >
               <input
                 id="biometric-enabled"
@@ -285,142 +230,43 @@
                 :checked="biometricEnabled"
                 :disabled="!biometricAvailable || isTogglingBiometric"
                 @change="toggleBiometric"
-                class="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-brand-500)] focus:ring-[var(--color-brand-500)] disabled:cursor-not-allowed"
+                class="settings-toggle__input"
               />
-              <div class="flex-1">
-                <p class="font-semibold">Enable biometric sign-in</p>
-                <p class="text-xs text-[var(--color-muted-foreground)] mt-1">
-                  {{ biometricAvailable
-                    ? 'Sign in faster using your device\'s biometric authentication'
-                    : 'Biometric authentication is only available on mobile devices'
-                  }}
+              <div>
+                <p class="settings-toggle__label">Enable biometric sign-in</p>
+                <p class="settings-toggle__desc">
+                  {{ biometricAvailable ? 'Sign in faster with device biometrics.' : 'Only available on mobile devices.' }}
                 </p>
               </div>
             </label>
-
-            <div
-              v-if="biometricEnabled"
-              class="rounded-2xl border border-[color-mix(in_oklch,var(--color-brand-500)_30%,transparent)] bg-[color-mix(in_oklch,var(--color-brand-500)_8%,transparent)] px-4 py-3"
-            >
-              <div class="flex items-start gap-2">
-                <svg class="w-5 h-5 text-[var(--color-brand-600)] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24">
-                  <path
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-                <div class="text-sm">
-                  <p class="font-semibold text-[var(--color-brand-600)]">
-                    Biometric sign-in is active
-                  </p>
-                  <p class="text-xs text-[var(--color-brand-600)]/80 mt-1">
-                    You can now use fingerprint or face recognition on the sign-in screen.
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
-        <div
-          class="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-soft"
-        >
-          <h2 class="text-xl font-semibold text-[var(--color-card-foreground)]">
-            About
-          </h2>
-          <div
-            class="mt-5 space-y-4 text-sm text-[var(--color-muted-foreground)]"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <span class="font-semibold text-[var(--color-card-foreground)]"
-                >Version</span
-              >
-              <span>SwitchFit Studio v1.0.0</span>
+        <!-- About -->
+        <div class="settings-card">
+          <div class="settings-card__header">
+            <h2 class="settings-card__title">About</h2>
+          </div>
+          <div class="settings-card__body">
+            <div class="settings-info-row">
+              <span class="text-xs text-[var(--color-muted-foreground)]">Version</span>
+              <span class="text-xs font-medium text-[var(--color-card-foreground)]">1.0.0</span>
             </div>
-            <div>
-              <p class="font-semibold text-[var(--color-card-foreground)]">
-                Technology
-              </p>
-              <p class="mt-1 leading-relaxed">
-                Powered by Google Gemini 2.5 Flash, OpenRouter, Vue 3, and
-                custom computer-vision pipelines for premium outfit synthesis.
-              </p>
-            </div>
-            <div>
-              <p class="font-semibold text-[var(--color-card-foreground)]">
-                Support
-              </p>
-              <p class="mt-1 leading-relaxed">
-                Visit our
-                <a
-                  href="#"
-                  class="font-semibold text-[var(--color-brand-600)] underline transition hover:text-[var(--color-brand-500)]"
-                >
-                  documentation
-                </a>
-                or contact
-                <a
-                  href="mailto:support@clothingai.com"
-                  class="font-semibold text-[var(--color-brand-600)] underline transition hover:text-[var(--color-brand-500)]"
-                >
-                  support@clothingai.com
-                </a>
-                for assistance.
-              </p>
-            </div>
+            <p class="text-xs text-[var(--color-muted-foreground)] leading-relaxed">
+              Powered by Gemini, OpenRouter, Vue 3 and custom vision pipelines.
+            </p>
           </div>
         </div>
 
-        <div
-          class="relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_30%,transparent)]/70 px-6 py-6 shadow-soft"
-        >
-          <div
-            class="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-gradient-to-br from-indigo-500/25 via-purple-400/20 to-sky-400/20 blur-3xl"
-          ></div>
-          <div
-            class="pointer-events-none absolute -bottom-28 left-0 h-60 w-60 rounded-full bg-gradient-to-tl from-emerald-400/20 via-sky-300/18 to-transparent blur-3xl"
-          ></div>
-
-          <div class="relative space-y-4">
-            <div class="space-y-1">
-              <p
-                class="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-muted-foreground)]"
-              >
-                Save configuration
-              </p>
-              <h3
-                class="text-lg font-semibold text-[var(--color-card-foreground)]"
-              >
-                Apply your latest preferences across the studio.
-              </h3>
-              <p class="text-sm text-[var(--color-muted-foreground)]">
-                Settings persist locally so each session starts ready for new
-                inspiration.
-              </p>
-            </div>
-            <button
-              type="button"
-              @click="saveSettings"
-              class="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-soft transition hover:opacity-95"
-            >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <path
-                  d="M5 13l4 4L19 7"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-              Save all settings
-            </button>
-          </div>
-        </div>
+        <!-- Save -->
+        <button type="button" @click="saveSettings" class="settings-save-btn">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+            <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          Save settings
+        </button>
       </div>
-    </section>
+    </div>
   </div>
 </template>
 
@@ -432,6 +278,9 @@ import { useAppStore } from '../stores/app';
 import { useAuthStore } from '../stores/authStore';
 import { usePlatform } from '../composables/usePlatform';
 import { useBiometricAuth } from '../composables/useBiometricAuth';
+import aiProviderService, { PROVIDERS } from '../services/aiProviderService';
+import geminiService from '../services/geminiService';
+import openRouterService from '../services/openRouterService';
 
 const router = useRouter();
 const appStore = useAppStore();
@@ -446,32 +295,36 @@ const {
 
 const { isAuthenticated, userName, user } = storeToRefs(authStore);
 
-// Biometric state
 const biometricEnabled = computed(() => isBiometricEnabled.value);
 const biometricAvailable = computed(() => isBiometricAvailable.value);
 const isTogglingBiometric = ref(false);
 
+const openrouterAvailable = computed(() => aiProviderService.isProviderAvailable(PROVIDERS.OPENROUTER));
+const geminiAvailable = computed(() => aiProviderService.isProviderAvailable(PROVIDERS.GEMINI));
+
+const apiKeys = reactive({
+  gemini: '',
+  openrouter: '',
+});
+const showGeminiKey = ref(false);
+const showOpenRouterKey = ref(false);
+
 const settings = reactive({
   saveHistory: true,
   autoDeleteDays: 30,
-  useLocalStorage: true, // Default to local storage on mobile
-  saveToSupabase: false, // Default to local browser storage on web
+  useLocalStorage: true,
+  saveToSupabase: false,
+  aiProvider: aiProviderService.provider,
 });
 
-onMounted(() => {
-  loadSettings();
-});
+onMounted(() => { loadSettings(); });
 
-// Settings functions
 const loadSettings = () => {
   const stored = localStorage.getItem('app_settings');
   if (stored) {
     try {
       const parsedSettings = JSON.parse(stored);
       Object.assign(settings, parsedSettings);
-      
-      // Sync useLocalStorage with saveToSupabase for web users
-      // If saveToSupabase is true, useLocalStorage should be false
       if (!isTauriMobile.value && typeof parsedSettings.saveToSupabase === 'boolean') {
         settings.useLocalStorage = !parsedSettings.saveToSupabase;
       }
@@ -479,117 +332,78 @@ const loadSettings = () => {
       console.error('Error loading settings:', error);
     }
   }
+  // Always sync AI provider from the facade (source of truth)
+  settings.aiProvider = aiProviderService.provider;
+
+  // Load user-provided API keys
+  apiKeys.gemini = geminiService.getUserApiKey();
+  apiKeys.openrouter = openRouterService.getUserApiKey();
 };
 
 const saveSettings = () => {
-  // For web users, sync useLocalStorage with saveToSupabase
-  if (!isTauriMobile.value) {
-    settings.useLocalStorage = !settings.saveToSupabase;
-  }
-  
+  if (!isTauriMobile.value) settings.useLocalStorage = !settings.saveToSupabase;
+  // Persist AI provider choice via the facade (writes its own localStorage key)
+  aiProviderService.provider = settings.aiProvider;
+
+  // Persist user-provided API keys and reload them into the services
+  geminiService.setApiKey(apiKeys.gemini);
+  openRouterService.setApiKey(apiKeys.openrouter);
+
   localStorage.setItem('app_settings', JSON.stringify(settings));
-  appStore.addToast({
-    type: 'success',
-    title: 'Settings Saved',
-    message: 'Your settings have been saved successfully!',
-  });
+  appStore.addToast({ type: 'success', title: 'Saved', message: 'Settings updated.' });
 };
 
 const clearAllData = () => {
-  if (
-    confirm(
-      'Are you sure you want to clear all local data? This action cannot be undone.'
-    )
-  ) {
+  if (confirm('Clear all local data? This cannot be undone.')) {
     localStorage.removeItem('app_settings');
     localStorage.removeItem('recentTryOns');
     localStorage.removeItem('wardrobe_items');
+    localStorage.removeItem('ai_provider');
+    // Clear user-provided API keys
+    geminiService.setApiKey('');
+    openRouterService.setApiKey('');
+    apiKeys.gemini = '';
+    apiKeys.openrouter = '';
 
-    Object.assign(settings, {
-      saveHistory: true,
-      autoDeleteDays: 30,
-      useLocalStorage: true,
-      saveToSupabase: false,
-    });
-
-    appStore.addToast({
-      type: 'success',
-      title: 'Data Cleared',
-      message: 'All local data has been cleared successfully!',
-    });
+    aiProviderService.provider = 'openrouter';
+    Object.assign(settings, { saveHistory: true, autoDeleteDays: 30, useLocalStorage: true, saveToSupabase: false, aiProvider: 'openrouter' });
+    appStore.addToast({ type: 'success', title: 'Cleared', message: 'All local data removed.' });
   }
 };
 
 const handleSignOut = async () => {
   const result = await authStore.signOut();
-
   if (result.success) {
-    appStore.addToast({
-      type: 'success',
-      title: 'Signed out',
-      message: 'Your session ended securely.',
-    });
-    
-    // Platform-aware navigation: mobile users go to /auth, desktop to home
-    if (isMobile.value) {
-      router.push('/auth');
-    } else {
-      router.push('/');
-    }
+    appStore.addToast({ type: 'success', title: 'Signed out', message: 'Session ended.' });
+    if (isMobile.value) { router.push('/auth'); } else { router.push('/'); }
   } else {
-    appStore.addToast({
-      type: 'error',
-      title: 'Sign out failed',
-      message: result.error,
-    });
+    appStore.addToast({ type: 'error', title: 'Sign out failed', message: result.error });
   }
 };
 
-// Computed for user display info
 const userEmail = computed(() => user.value?.email || 'Not available');
 const userDisplayName = computed(() => userName.value || 'User');
 
-// Biometric toggle handler
 const toggleBiometric = async (event) => {
   const isChecked = event.target.checked;
   isTogglingBiometric.value = true;
 
   try {
     if (isChecked) {
-      // Enable biometric
       const result = await enableBiometric();
       if (result.success) {
-        appStore.addToast({
-          type: 'success',
-          title: 'Biometric Enabled',
-          message: 'You can now use biometric authentication to sign in.',
-        });
+        appStore.addToast({ type: 'success', title: 'Biometric enabled', message: 'You can now use biometric sign-in.' });
       } else {
-        // Revert checkbox if failed
         event.target.checked = false;
-        appStore.addToast({
-          type: 'error',
-          title: 'Failed to Enable',
-          message: result.error || 'Could not enable biometric authentication.',
-        });
+        appStore.addToast({ type: 'error', title: 'Failed', message: result.error || 'Could not enable biometrics.' });
       }
     } else {
-      // Disable biometric
       disableBiometric();
-      appStore.addToast({
-        type: 'success',
-        title: 'Biometric Disabled',
-        message: 'Biometric authentication has been disabled.',
-      });
+      appStore.addToast({ type: 'success', title: 'Biometric disabled', message: 'Biometric sign-in turned off.' });
     }
   } catch (error) {
-    console.error('Error toggling biometric:', error);
     event.target.checked = !isChecked;
-    appStore.addToast({
-      type: 'error',
-      title: 'Error',
-      message: 'An error occurred while changing biometric settings.',
-    });
+    appStore.addToast({ type: 'error', title: 'Error', message: 'Failed to change biometric settings.' });
   } finally {
     isTogglingBiometric.value = false;
   }
@@ -597,33 +411,278 @@ const toggleBiometric = async (event) => {
 </script>
 
 <style scoped>
-/* Mobile-only title */
-.mobile-title {
-  display: none;
+.settings-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-@media (max-width: 767px) {
-  .mobile-title {
-    display: block;
-    text-align: center;
-    padding: 0.5rem 0;
-  }
-  
-  .mobile-title h1 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--color-card-foreground);
-    margin: 0;
-  }
+.settings-layout {
+  display: grid;
+  gap: 1rem;
+}
 
-  /* Hide hero section on mobile */
-  .hero-section {
-    display: none;
+@media (min-width: 1024px) {
+  .settings-layout {
+    grid-template-columns: 2fr 1fr;
   }
+}
 
-  /* Reduce spacing on mobile */
-  .flex.flex-col.gap-10 {
-    gap: 1.5rem;
-  }
+.settings-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.settings-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.settings-card__header {
+  padding: 0.875rem 1rem 0;
+}
+
+.settings-card__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-card-foreground);
+}
+
+.settings-card__desc {
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+  margin-top: 0.125rem;
+}
+
+.settings-card__body {
+  padding: 0.75rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.settings-toggle:hover {
+  border-color: var(--color-muted-foreground);
+}
+
+.settings-toggle--active {
+  border-color: var(--color-foreground);
+  background: oklch(0.97 0.003 250);
+}
+
+.dark .settings-toggle--active {
+  background: oklch(0.2 0.005 250);
+}
+
+.settings-toggle__input {
+  margin-top: 0.125rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  accent-color: var(--color-foreground);
+  flex-shrink: 0;
+}
+
+.settings-toggle__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-card-foreground);
+}
+
+.settings-toggle__desc {
+  font-size: 0.6875rem;
+  color: var(--color-muted-foreground);
+  margin-top: 0.0625rem;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.settings-select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-card-foreground);
+  transition: border-color 0.15s ease;
+}
+
+.settings-select:focus {
+  outline: none;
+  border-color: var(--color-ring);
+  box-shadow: var(--shadow-focus);
+}
+
+.settings-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.settings-danger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px dashed oklch(0.58 0.22 27 / 0.2);
+  border-radius: var(--radius-md);
+  background: oklch(0.58 0.22 27 / 0.03);
+}
+
+.settings-danger__btn {
+  flex-shrink: 0;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-destructive-500);
+  border: 1px solid oklch(0.58 0.22 27 / 0.2);
+  border-radius: var(--radius-md);
+  transition: background 0.15s ease;
+}
+
+.settings-danger__btn:hover {
+  background: oklch(0.58 0.22 27 / 0.06);
+}
+
+.settings-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.settings-signout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-destructive-500);
+  border: 1px solid oklch(0.58 0.22 27 / 0.15);
+  border-radius: var(--radius-md);
+  margin-top: 0.25rem;
+  transition: background 0.15s ease;
+}
+
+.settings-signout-btn:hover {
+  background: oklch(0.58 0.22 27 / 0.04);
+}
+
+.settings-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: var(--color-foreground);
+  color: var(--color-background);
+  border-radius: var(--radius-md);
+  transition: opacity 0.15s ease;
+}
+
+.settings-save-btn:hover {
+  opacity: 0.88;
+}
+
+/* ── API Key inputs ─────────────────────────────── */
+
+.settings-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+  letter-spacing: -0.01em;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-card-foreground);
+  transition: border-color 0.15s ease;
+}
+
+.settings-input::placeholder {
+  color: var(--color-muted-foreground);
+  opacity: 0.5;
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: var(--color-ring);
+  box-shadow: var(--shadow-focus);
+}
+
+.settings-key-input {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.settings-key-input .settings-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-key-toggle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-muted-foreground);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.settings-key-toggle:hover {
+  border-color: var(--color-muted-foreground);
+  color: var(--color-card-foreground);
+}
+
+.settings-key-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.settings-key-status--set {
+  color: oklch(0.55 0.18 145);
+}
+
+.settings-link {
+  color: var(--color-foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity 0.15s ease;
+}
+
+.settings-link:hover {
+  opacity: 0.7;
 }
 </style>

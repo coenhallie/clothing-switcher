@@ -2,10 +2,15 @@ import { createRouter, createWebHistory } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
 import SettingsView from '../views/SettingsView.vue';
 import GalleryView from '../views/GalleryView.vue';
+import PrivacyView from '../views/PrivacyView.vue';
+import TermsView from '../views/TermsView.vue';
 import MobileAuthScreen from '../views/MobileAuthScreen.vue';
 import AuthCallback from '../views/AuthCallback.vue';
 import { detectPlatformSync } from '../utils/platformDetection.js';
 import { useAuthStore } from '../stores/authStore.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('Router');
 
 const routes = [
   {
@@ -35,6 +40,16 @@ const routes = [
     },
   },
   {
+    path: '/privacy',
+    name: 'Privacy',
+    component: PrivacyView,
+  },
+  {
+    path: '/terms',
+    name: 'Terms',
+    component: TermsView,
+  },
+  {
     path: '/auth/callback',
     name: 'AuthCallback',
     component: AuthCallback,
@@ -52,25 +67,18 @@ const router = createRouter({
 
 // Navigation guard to protect authenticated routes and handle auth screen access
 router.beforeEach(async (to, from, next) => {
-  console.log('[Router Guard] Navigation:', {
-    from: from.path,
-    to: to.path,
-    requiresAuth: to.meta.requiresAuth,
-    mobileOnly: to.meta.mobileOnly,
-    public: to.meta.public
-  });
+  logger.debug('Navigation:', { from: from.path, to: to.path, requiresAuth: to.meta.requiresAuth, mobileOnly: to.meta.mobileOnly, public: to.meta.public });
 
   // Use synchronous platform detection (critical fix for mobile auth redirect)
   const { isMobile, platform } = detectPlatformSync();
-  console.log('[Router Guard] Platform detected:', { isMobile, platform });
+  logger.debug('Platform detected:', { isMobile, platform });
 
   // Initialize authStore
   let authStore;
   try {
     authStore = useAuthStore();
   } catch (e) {
-    console.error('[Router Guard] Failed to initialize authStore:', e);
-    // If authStore fails, allow navigation to public routes only
+    logger.error('Failed to initialize authStore:', e);
     if (to.meta.public || to.path === '/') {
       next();
     } else {
@@ -80,52 +88,39 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // CRITICAL: Wait for session restoration to complete before making auth decisions
-  console.log('[Router Guard] Waiting for session restoration...');
+  logger.debug('Waiting for session restoration...');
   try {
     await authStore.ensureSessionRestored();
-    console.log('[Router Guard] Session restoration complete:', {
-      isAuthenticated: authStore.isAuthenticated,
-      hasUser: !!authStore.user,
-      userEmail: authStore.user?.email
-    });
+    logger.debug('Session restoration complete:', { isAuthenticated: authStore.isAuthenticated, hasUser: !!authStore.user, userEmail: authStore.user?.email });
   } catch (error) {
-    console.error('[Router Guard] Session restoration failed:', error);
+    logger.error('Session restoration failed:', error);
     // Continue with navigation, treating user as unauthenticated
   }
 
-  // Get current authentication status (fixes hardcoded isAuthenticated = false bug)
+  // Get current authentication status
   const isAuthenticated = authStore.isAuthenticated;
-  console.log('[Router Guard] Authentication status:', {
-    isAuthenticated,
-    hasUser: !!authStore.user,
-    userEmail: authStore.user?.email
-  });
+  logger.debug('Authentication status:', { isAuthenticated, hasUser: !!authStore.user });
 
-  // CRITICAL FIX: Redirect unauthenticated mobile users from home to /auth
+  // Redirect unauthenticated mobile users from home to /auth
   if (to.path === '/' && isMobile && !isAuthenticated) {
-    console.log('[Router Guard] CRITICAL REDIRECT: Unauthenticated mobile user at /, redirecting to /auth');
+    logger.info('Redirecting unauthenticated mobile user to /auth');
     next('/auth');
     return;
   }
 
   // Handle /auth route access control
   if (to.path === '/auth') {
-    // Prevent desktop users from accessing mobile-only auth screen
     if (!isMobile) {
-      console.log('[Router Guard] Desktop user attempted to access /auth, redirecting to home');
+      logger.debug('Desktop user attempted to access /auth, redirecting to home');
       next('/');
       return;
     }
-
-    // Redirect authenticated mobile users away from auth screen
     if (isAuthenticated) {
-      console.log('[Router Guard] Authenticated mobile user attempted to access /auth, redirecting to home');
+      logger.debug('Authenticated mobile user attempted to access /auth, redirecting to home');
       next('/');
       return;
     }
-
-    // Allow unauthenticated mobile users to access auth screen
-    console.log('[Router Guard] Allowing unauthenticated mobile user to access /auth');
+    logger.debug('Allowing unauthenticated mobile user to access /auth');
     next();
     return;
   }
@@ -133,28 +128,21 @@ router.beforeEach(async (to, from, next) => {
   // Handle authenticated route protection
   if (to.meta.requiresAuth) {
     if (!isAuthenticated) {
-      console.log('[Router Guard] Unauthenticated user attempted to access protected route:', to.path);
-      
+      logger.debug('Unauthenticated user attempted to access protected route:', to.path);
       if (isMobile) {
-        // Redirect to mobile auth screen with return URL
-        console.log('[Router Guard] Redirecting mobile user to /auth with redirect param');
         next(`/auth?redirect=${encodeURIComponent(to.fullPath)}`);
       } else {
-        // Redirect desktop users to home (desktop modal will handle auth)
-        console.log('[Router Guard] Redirecting desktop user to home (modal will handle auth)');
         next('/');
       }
       return;
     }
-
-    // Allow authenticated users to access protected routes
-    console.log('[Router Guard] Allowing authenticated user to access protected route:', to.path);
+    logger.debug('Allowing authenticated user to access protected route:', to.path);
     next();
     return;
   }
 
   // Allow navigation to public routes
-  console.log('[Router Guard] Allowing navigation to public route:', to.path);
+  logger.debug('Allowing navigation to:', to.path);
   next();
 });
 

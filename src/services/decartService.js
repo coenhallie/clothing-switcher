@@ -2,13 +2,12 @@
  * Decart AI service — Video Generation only.
  *
  * Uses Decart's Lucy Dev I2V model via the official @decartai/sdk
- * to generate short videos from still images (queue-based API).
+ * to generate ~5 s videos from still images (queue-based API).
  *
  * Image generation is handled by the Nano Banana (Gemini) service
  * via OpenRouter — see openRouterService.js.
  *
- * Docs: https://decart.mintlify.app/api-reference/submit-lucy-dev-i2v-job
- *       https://docs.platform.decart.ai/models/video/video-generation
+ * Docs: https://docs.platform.decart.ai/models/video/video-generation
  *
  * API flow (Queue):
  *   1. POST /v1/jobs/lucy-dev-i2v  → { job_id }
@@ -48,7 +47,7 @@ class DecartService {
   // ---------------------------------------------------------------------------
 
   /**
-   * Generate a short (~5 s) video from a still image.
+   * Generate a ~5 s video from a still image with a full 360° turnaround.
    *
    * Uses Decart's **Dev** Queue API (lucy-dev-i2v):
    *   1. POST /v1/jobs/lucy-dev-i2v  → { job_id }
@@ -99,12 +98,10 @@ class DecartService {
 
       const prompt =
         options.prompt ||
-        `Smooth continuous 360-degree rotation of the subject around its vertical axis. One full revolution at steady consistent speed. ` +
-        `Subject stays perfectly centered — no translational movement, no camera changes, no zoom, no lighting shifts, no background changes, no pose or expression changes, no extra motion. ` +
-        `Do not fabricate or add any content not in the source image. ` +
-        `Preserve all background, lighting, color grading, and shadows exactly as-is across every frame. ` +
-        `Match source resolution (${srcWidth}×${srcHeight}) and aspect ratio exactly — no cropping, padding, scaling, or letterboxing. ` +
-        `Only animate rotation, nothing else.`;
+        `The camera slowly orbits 360 degrees around the person, completing one full smooth revolution. ` +
+        `The person stands still in the center while the camera circles them, showing every angle — front, side, back, and returning to front. ` +
+        `Steady, continuous camera orbit at constant speed. The subject remains stationary and centered. ` +
+        `Background, lighting, and all details stay consistent throughout the full rotation.`;
 
       console.log('[DecartVideo] Submitting job via SDK (lucy-dev-i2v)…', {
         fileType: imageFile.type,
@@ -115,7 +112,6 @@ class DecartService {
       });
 
       // Use the SDK's manual submit → poll → result flow for better error details
-      // NOTE: Using 'lucy-dev-i2v' (dev version) instead of 'lucy-pro-i2v'
       const job = await this.sdkClient.queue.submit({
         model: models.video('lucy-dev-i2v'),
         prompt,
